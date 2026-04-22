@@ -1,0 +1,112 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: cd ${{ github.workspace }} && xcodegen generate
+
+      - name: Get version (date)
+        id: version
+        run: echo "VERSION=$(date +%d.%m.%Y)" >> $GITHUB_OUTPUT
+
+      - name: Update Info.plist with version
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString ${{ steps.version.outputs.VERSION }}" Mumbl/Info.plist
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $(date +%s)" Mumbl/Info.plist
+
+      - name: Build
+        run: |
+          xcodebuild -scheme Mumbl \
+            -configuration Release \
+            -derivedDataPath build \
+            -arch arm64 \
+            build
+
+      - name: Create app bundle
+        run: |
+          mkdir -p dist
+          cp -r build/Build/Products/Release/Mumbl.app dist/
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          zip -r -q Mumbl-${{ steps.version.outputs.VERSION }}.zip Mumbl.app
+          cd ..
+
+      - name: Fetch latest releases for appcast
+        id: appcast
+        run: |
+          RELEASES=$(gh release list --repo emmi-dev12/mumbl --limit 10 --json tagName,createdAt,body)
+          echo "$RELEASES" > /tmp/releases.json
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Sparkle appcast
+        run: |
+          python3 - <<'PYTHON'
+          import json
+          import os
+          from datetime import datetime
+
+          # Create appcast
+          appcast = """<?xml version="1.0" standalone="yes"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+              <channel>
+                  <title>Mumbl Updates</title>
+                  <link>https://github.com/emmi-dev12/mumbl</link>
+                  <description>Latest updates for Mumbl</description>
+          """
+
+          # Add current release
+          version = "${{ steps.version.outputs.VERSION }}"
+          appcast += f"""        <item>
+                      <title>Version {version}</title>
+                      <pubDate>{datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>
+                      <sparkle:version>{version}</sparkle:version>
+                      <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
+                      <link>https://github.com/emmi-dev12/mumbl/releases/tag/{version}</link>
+                      <sparkle:releaseNotesLink>https://github.com/emmi-dev12/mumbl/releases/tag/{version}</sparkle:releaseNotesLink>
+                      <enclosure url="https://github.com/emmi-dev12/mumbl/releases/download/{version}/Mumbl-{version}.zip"
+                                 sparkle:version="{version}"
+                                 type="application/octet-stream" />
+                  </item>
+          """
+
+          appcast += """    </channel>
+          </rss>
+          """
+
+          with open('dist/appcast.xml', 'w') as f:
+              f.write(appcast)
+          PYTHON
+
+      - name: Create version release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          files: dist/Mumbl-${{ steps.version.outputs.VERSION }}.zip
+          generate_release_notes: true
+          prerelease: false
+
+      - name: Update appcast release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: appcast
+          files: dist/appcast.xml
+          name: Latest Appcast
+          body: "Automatically updated appcast for Sparkle updates"
+          prerelease: false
+          draft: false

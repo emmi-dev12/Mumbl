@@ -29,8 +29,10 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Mumbl. MIT License.</string>
 	<key>SUFeedURL</key>
-	<string>https://mumbl.app/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>https://github.com/emmi-dev12/mumbl/releases/download/appcast/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUCheckInterval</key>
+	<integer>3600</integer>
 </dict>
 </plist>

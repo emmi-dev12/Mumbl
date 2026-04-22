@@ -26,6 +26,13 @@ final class SettingsViewModel: ObservableObject {
     @AppStorage("indicatorPosition") private var indicatorPositionRaw: String = IndicatorPosition.topCenter.rawValue
     @AppStorage("soundFeedbackEnabled") var soundFeedbackEnabled: Bool = true
     @AppStorage("showTranscriptionInIndicator") var showTranscriptionInIndicator: Bool = true
+    @AppStorage("autoUpdateEnabled") var autoUpdateEnabled: Bool = true
+    @AppStorage("updateCheckInterval") private var updateCheckIntervalRaw: String = UpdateCheckInterval.hourly.rawValue
+
+    var updateCheckInterval: UpdateCheckInterval {
+        get { UpdateCheckInterval(rawValue: updateCheckIntervalRaw) ?? .hourly }
+        set { updateCheckIntervalRaw = newValue.rawValue }
+    }
 
     var activationMode: ActivationMode {
         get { ActivationMode(rawValue: activationModeRaw) ?? .both }
@@ -81,6 +88,31 @@ enum IndicatorPosition: String, CaseIterable {
         switch self {
         case .topCenter: return "Top Center"
         case .nearCursor: return "Near Cursor"
+        }
+    }
+}
+
+enum UpdateCheckInterval: String, CaseIterable {
+    case hourly = "hourly"
+    case daily = "daily"
+    case weekly = "weekly"
+    case manual = "manual"
+
+    var displayName: String {
+        switch self {
+        case .hourly: return "Every hour"
+        case .daily: return "Every day"
+        case .weekly: return "Every week"
+        case .manual: return "Manual only"
+        }
+    }
+
+    var seconds: Int {
+        switch self {
+        case .hourly: return 3600
+        case .daily: return 86400
+        case .weekly: return 604800
+        case .manual: return Int.max
         }
     }
 }

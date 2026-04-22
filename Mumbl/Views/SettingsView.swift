@@ -313,32 +313,57 @@ struct APIKeyField: View {
 // MARK: - About Tab
 
 struct AboutTab: View {
-    var body: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            Image(systemName: "waveform.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(.purple)
-            Text("Mumbl")
-                .font(.largeTitle.bold())
-            Text("Version 1.0.0")
-                .foregroundStyle(.secondary)
-            Text("Free, open-source voice dictation for macOS.\nBuilt with WhisperKit and ❤️")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
+    @EnvironmentObject var settingsVM: SettingsViewModel
 
-            HStack(spacing: 20) {
+    var body: some View {
+        Form {
+            Section {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.purple)
+                    .frame(maxWidth: .infinity)
+                Text("Mumbl")
+                    .font(.largeTitle.bold())
+                    .frame(maxWidth: .infinity)
+                Text("Free, open-source voice dictation for macOS.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
+            }
+
+            Section("Updates") {
+                Toggle("Auto-update", isOn: $settingsVM.autoUpdateEnabled)
+                if settingsVM.autoUpdateEnabled {
+                    Picker("Check frequency", selection: Binding(
+                        get: { settingsVM.updateCheckInterval },
+                        set: { settingsVM.updateCheckInterval = $0 }
+                    )) {
+                        ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
+                            Text(interval.displayName).tag(interval)
+                        }
+                    }
+                    .pickerStyle(.radioGroup)
+                }
+                Button("Check for Updates Now") {
+                    // Sparkle will handle the check
+                    NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
+                }
+                .buttonStyle(.bordered)
+            }
+
+            Section("Links") {
                 Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
                 Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
             }
-            .font(.subheadline)
 
-            Spacer()
-            Text("MIT License · Made with Swift")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
-            Spacer()
+            Section {
+                Text("MIT License · Made with Swift")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
+        .formStyle(.grouped)
         .padding()
     }
 }

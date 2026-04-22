@@ -14,23 +14,28 @@ Hold a hotkey anywhere on your Mac, whisper or speak, release — your transcrib
 - **Floating pill indicator** showing recording/processing/done state
 - **Optional AI cleanup** — removes filler words and fixes grammar before inserting
 - **Transcription history** with search and copy
+- **Auto-updater** with configurable check frequency (hourly/daily/weekly/manual)
 - **Privacy-first** — local by default, zero data retention, cloud is always opt-in
 - **Free and open source** (MIT)
 
-## Requirements
+## Installation
 
-- macOS 14.0 (Sonoma) or later
-- Apple Silicon recommended (M1+) for local models
+### From Release (Recommended)
 
-## Setup
+1. Go to [Releases](https://github.com/emmi-dev12/mumbl/releases)
+2. Download the latest `Mumbl-DD.MM.YYYY.zip`
+3. Unzip and drag `Mumbl.app` to your `Applications` folder
+4. Launch it and grant permissions
 
-### Prerequisites
+### From Source
+
+#### Prerequisites
 
 ```bash
 brew install xcodegen
 ```
 
-### Build
+#### Build & Run
 
 ```bash
 git clone https://github.com/emmi-dev12/mumbl
@@ -84,12 +89,31 @@ Mumbl/
 
 Mumbl uses the industry-standard approach: save clipboard → set text → send ⌘V → restore clipboard (after 250ms). Requires Accessibility permission. Your clipboard contents are always restored.
 
+## Updates
+
+Mumbl checks for updates automatically using [Sparkle](https://sparkle-project.org/). You can:
+- Enable/disable auto-updates in Settings → About
+- Choose check frequency: hourly, daily, weekly, or manual only
+- Check manually anytime via Settings → About → Check for Updates Now
+
+**Versioning**: Mumbl uses date-based versioning (DD.MM.YYYY) — released and built automatically via GitHub Actions on every push to `main`.
+
 ## Privacy
 
 - **Local mode**: audio never leaves your device
 - **Cloud mode**: audio is sent only to the provider you select, using your own API key
 - API keys are stored in macOS Keychain, never in plain text
 - No analytics, no telemetry, no accounts required
+
+## Development
+
+GitHub Actions automatically:
+1. Builds the app on every push to `main`
+2. Creates a dated release (DD.MM.YYYY)
+3. Packages the `.app` bundle as a ZIP
+4. Updates the Sparkle appcast for in-app updates
+
+See [.github/workflows/build-and-release.yml](.github/workflows/build-and-release.yml) for details.
 
 ## License
 
