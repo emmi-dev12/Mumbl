@@ -226,39 +226,46 @@ struct AICleanupTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        Form {
-            Section {
-                Toggle("Enable AI cleanup", isOn: $settingsVM.aiCleanupEnabled)
-                Text("Removes filler words, fixes grammar, and polishes transcriptions before inserting them.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
 
-            if settingsVM.aiCleanupEnabled {
-                Section("Provider") {
-                    Picker("Provider", selection: Binding(
-                        get: { settingsVM.aiCleanupProvider },
-                        set: { settingsVM.aiCleanupProvider = $0 }
-                    )) {
-                        ForEach(AICleanupProvider.allCases, id: \.self) { provider in
-                            Text(provider.displayName).tag(provider)
+            Form {
+                Section {
+                    Toggle("Enable AI cleanup", isOn: $settingsVM.aiCleanupEnabled)
+                        .tint(CyberpunkColors.neonPink)
+                    Text("Removes filler words, fixes grammar, and polishes transcriptions before inserting them.")
+                        .font(.caption)
+                        .foregroundStyle(CyberpunkColors.textMuted)
+                }
+
+                if settingsVM.aiCleanupEnabled {
+                    Section("Provider") {
+                        Picker("Provider", selection: Binding(
+                            get: { settingsVM.aiCleanupProvider },
+                            set: { settingsVM.aiCleanupProvider = $0 }
+                        )) {
+                            ForEach(AICleanupProvider.allCases, id: \.self) { provider in
+                                Text(provider.displayName)
+                                    .tag(provider)
+                                    .foregroundStyle(CyberpunkColors.textPrimary)
+                            }
                         }
-                    }
-                    .pickerStyle(.radioGroup)
-                    if settingsVM.aiCleanupProvider != .local {
-                        Text("Requires a valid API key in Cloud APIs settings.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Runs on-device: removes filler words and cleans up punctuation.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        .pickerStyle(.radioGroup)
+                        if settingsVM.aiCleanupProvider != .local {
+                            Text("Requires a valid API key in Cloud APIs settings.")
+                                .font(.caption)
+                                .foregroundStyle(CyberpunkColors.textMuted)
+                        } else {
+                            Text("Runs on-device: removes filler words and cleans up punctuation.")
+                                .font(.caption)
+                                .foregroundStyle(CyberpunkColors.textMuted)
+                        }
                     }
                 }
             }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         }
-        .formStyle(.grouped)
-        .padding()
     }
 }
 
@@ -268,27 +275,31 @@ struct HotkeysTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        Form {
-            Section("Push-to-Talk") {
-                LabeledContent("Shortcut") {
-                    KeyboardShortcuts.Recorder("", name: .pushToTalk)
-                }
-                Text("Hold to record, release to transcribe and insert.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
 
-            Section("Toggle") {
-                LabeledContent("Shortcut") {
-                    KeyboardShortcuts.Recorder("", name: .toggleRecording)
+            Form {
+                Section("Push-to-Talk") {
+                    LabeledContent("Shortcut") {
+                        KeyboardShortcuts.Recorder("", name: .pushToTalk)
+                    }
+                    Text("Hold to record, release to transcribe and insert.")
+                        .font(.caption)
+                        .foregroundStyle(CyberpunkColors.textMuted)
                 }
-                Text("Press once to start recording, press again to stop and insert.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+
+                Section("Toggle") {
+                    LabeledContent("Shortcut") {
+                        KeyboardShortcuts.Recorder("", name: .toggleRecording)
+                    }
+                    Text("Press once to start recording, press again to stop and insert.")
+                        .font(.caption)
+                        .foregroundStyle(CyberpunkColors.textMuted)
+                }
             }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         }
-        .formStyle(.grouped)
-        .padding()
     }
 }
 
@@ -304,43 +315,47 @@ struct CloudAPITab: View {
     @State private var showDeepgram = false
 
     var body: some View {
-        Form {
-            Section("OpenAI") {
-                APIKeyField(
-                    label: "API Key",
-                    placeholder: "sk-...",
-                    value: $openAIKey,
-                    show: $showOpenAI,
-                    onSave: { settingsVM.openAIKey = openAIKey }
-                )
-            }
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
 
-            Section("Groq") {
-                APIKeyField(
-                    label: "API Key",
-                    placeholder: "gsk_...",
-                    value: $groqKey,
-                    show: $showGroq,
-                    onSave: { settingsVM.groqKey = groqKey }
-                )
-            }
+            Form {
+                Section("OpenAI") {
+                    APIKeyField(
+                        label: "API Key",
+                        placeholder: "sk-...",
+                        value: $openAIKey,
+                        show: $showOpenAI,
+                        onSave: { settingsVM.openAIKey = openAIKey }
+                    )
+                }
 
-            Section("Deepgram") {
-                APIKeyField(
-                    label: "API Key",
-                    placeholder: "dg_...",
-                    value: $deepgramKey,
-                    show: $showDeepgram,
-                    onSave: { settingsVM.deepgramKey = deepgramKey }
-                )
+                Section("Groq") {
+                    APIKeyField(
+                        label: "API Key",
+                        placeholder: "gsk_...",
+                        value: $groqKey,
+                        show: $showGroq,
+                        onSave: { settingsVM.groqKey = groqKey }
+                    )
+                }
+
+                Section("Deepgram") {
+                    APIKeyField(
+                        label: "API Key",
+                        placeholder: "dg_...",
+                        value: $deepgramKey,
+                        show: $showDeepgram,
+                        onSave: { settingsVM.deepgramKey = deepgramKey }
+                    )
+                }
             }
-        }
-        .formStyle(.grouped)
-        .padding()
-        .onAppear {
-            openAIKey = settingsVM.openAIKey
-            groqKey = settingsVM.groqKey
-            deepgramKey = settingsVM.deepgramKey
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .onAppear {
+                openAIKey = settingsVM.openAIKey
+                groqKey = settingsVM.groqKey
+                deepgramKey = settingsVM.deepgramKey
+            }
         }
     }
 }
@@ -363,9 +378,10 @@ struct APIKeyField: View {
             }
             Button(show ? "Hide" : "Show") { show.toggle() }
                 .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CyberpunkColors.textSecondary)
             Button("Save") { onSave() }
                 .buttonStyle(.bordered)
+                .tint(CyberpunkColors.neonMagenta)
         }
     }
 }
@@ -376,54 +392,65 @@ struct AboutTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        Form {
-            Section {
-                Image(systemName: "waveform.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(.purple)
-                    .frame(maxWidth: .infinity)
-                Text("Mumbl")
-                    .font(.largeTitle.bold())
-                    .frame(maxWidth: .infinity)
-                Text("Free, open-source voice dictation for macOS.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .multilineTextAlignment(.center)
-            }
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
 
-            Section("Updates") {
-                Toggle("Auto-update", isOn: $settingsVM.autoUpdateEnabled)
-                if settingsVM.autoUpdateEnabled {
-                    Picker("Check frequency", selection: Binding(
-                        get: { settingsVM.updateCheckInterval },
-                        set: { settingsVM.updateCheckInterval = $0 }
-                    )) {
-                        ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
-                            Text(interval.displayName).tag(interval)
+            Form {
+                Section {
+                    Image(systemName: "waveform.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(CyberpunkColors.neonPink)
+                        .neonGlow(CyberpunkColors.neonPink, radius: 8)
+                        .frame(maxWidth: .infinity)
+                    Text("Mumbl")
+                        .font(.largeTitle.bold())
+                        .foregroundStyle(CyberpunkColors.textPrimary)
+                        .frame(maxWidth: .infinity)
+                    Text("Free, open-source voice dictation for macOS.")
+                        .font(.subheadline)
+                        .foregroundStyle(CyberpunkColors.textSecondary)
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                }
+
+                Section("Updates") {
+                    Toggle("Auto-update", isOn: $settingsVM.autoUpdateEnabled)
+                        .tint(CyberpunkColors.neonPink)
+                    if settingsVM.autoUpdateEnabled {
+                        Picker("Check frequency", selection: Binding(
+                            get: { settingsVM.updateCheckInterval },
+                            set: { settingsVM.updateCheckInterval = $0 }
+                        )) {
+                            ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
+                                Text(interval.displayName)
+                                    .tag(interval)
+                                    .foregroundStyle(CyberpunkColors.textPrimary)
+                            }
                         }
+                        .pickerStyle(.radioGroup)
                     }
-                    .pickerStyle(.radioGroup)
+                    Button("Check for Updates Now") {
+                        NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(CyberpunkColors.neonMagenta)
                 }
-                Button("Check for Updates Now") {
-                    // Sparkle will handle the check
-                    NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
+
+                Section("Links") {
+                    Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
+                        .foregroundStyle(CyberpunkColors.neonCyan)
+                    Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
+                        .foregroundStyle(CyberpunkColors.neonCyan)
                 }
-                .buttonStyle(.bordered)
-            }
 
-            Section("Links") {
-                Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
-                Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
+                Section {
+                    Text("MIT License · Made with Swift")
+                        .font(.caption)
+                        .foregroundStyle(CyberpunkColors.textMuted)
+                }
             }
-
-            Section {
-                Text("MIT License · Made with Swift")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         }
-        .formStyle(.grouped)
-        .padding()
     }
 }

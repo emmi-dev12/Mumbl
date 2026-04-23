@@ -289,8 +289,7 @@ struct NeonWaveformView: View {
                         .frame(width: 3, height: barHeight(index: i))
                         .neonGlow(CyberpunkColors.neonPink, radius: 3)
                 }
-                .frame(height: 20)
-                .alignment(.bottom)
+                .frame(height: 20, alignment: .bottom)
             }
         }
     }

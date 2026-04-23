@@ -35,10 +35,7 @@ final class AudioRecordingService: ObservableObject {
         audioEngine = AVAudioEngine()
         let inputNode = audioEngine.inputNode
         
-        guard let inputFormat = inputNode.outputFormat(forBus: 0) else {
-            logger.error("Failed to get input format")
-            throw AudioError.inputFormatFailed
-        }
+        let inputFormat = inputNode.outputFormat(forBus: 0)
 
         guard let converter = AVAudioConverter(from: inputFormat, to: targetFormat) else {
             logger.error("Failed to create audio converter")

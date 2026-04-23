@@ -13,13 +13,17 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            searchBar
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
 
-            if filtered.isEmpty {
-                emptyState
-            } else {
-                list
+            VStack(spacing: 0) {
+                searchBar
+
+                if filtered.isEmpty {
+                    emptyState
+                } else {
+                    list
+                }
             }
         }
         .toolbar {
@@ -28,28 +32,33 @@ struct HistoryView: View {
                     Button("Clear All", role: .destructive) {
                         historyVM.deleteAll()
                     }
-                    .foregroundStyle(.red)
+                    .foregroundStyle(CyberpunkColors.recordingRed)
                 }
             }
         }
+        .preferredColorScheme(.dark)
     }
 
     private var searchBar: some View {
         HStack {
-            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(CyberpunkColors.neonCyan)
+                .neonGlow(CyberpunkColors.neonCyan, radius: 2)
             TextField("Search transcriptions…", text: $searchText)
                 .textFieldStyle(.plain)
+                .foregroundStyle(CyberpunkColors.textPrimary)
             if !searchText.isEmpty {
                 Button(action: { searchText = "" }) {
-                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(CyberpunkColors.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(.controlBackgroundColor))
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(.separator), alignment: .bottom)
+        .background(CyberpunkColors.darkBgAlt)
+        .overlay(Rectangle().frame(height: 1).foregroundStyle(CyberpunkColors.neonPink.opacity(0.2)), alignment: .bottom)
     }
 
     private var list: some View {
@@ -77,14 +86,15 @@ struct HistoryView: View {
             Spacer()
             Image(systemName: "waveform")
                 .font(.system(size: 40))
-                .foregroundStyle(.quaternary)
+                .foregroundStyle(CyberpunkColors.textMuted)
+                .neonGlow(CyberpunkColors.neonPink.opacity(0.3), radius: 6)
             Text(searchText.isEmpty ? "No transcriptions yet" : "No results")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CyberpunkColors.textSecondary)
             if searchText.isEmpty {
                 Text("Use your hotkey to start dictating")
                     .font(.subheadline)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(CyberpunkColors.textMuted)
             }
             Spacer()
         }
@@ -109,22 +119,23 @@ struct HistoryRow: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(record.text)
                 .font(.system(size: 13))
+                .foregroundStyle(CyberpunkColors.textPrimary)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 8) {
                 Text(record.date, style: .relative)
                     .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                Text("·").foregroundStyle(.quaternary)
+                    .foregroundStyle(CyberpunkColors.textMuted)
+                Text("·").foregroundStyle(CyberpunkColors.textMuted)
                 Text(record.engineDisplayName)
                     .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(CyberpunkColors.textMuted)
                 Spacer()
                 Button(action: onCopy) {
                     Label(isCopied ? "Copied" : "Copy", systemImage: isCopied ? "checkmark" : "doc.on.doc")
                         .font(.system(size: 11))
-                        .foregroundStyle(isCopied ? .green : .secondary)
+                        .foregroundStyle(isCopied ? CyberpunkColors.successGreen : CyberpunkColors.textSecondary)
                 }
                 .buttonStyle(.plain)
             }
