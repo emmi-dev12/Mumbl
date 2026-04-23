@@ -4,7 +4,7 @@ struct MenuBarView: View {
     @EnvironmentObject var appVM: AppViewModel
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
-    @State private var showSettings = false
+    @Environment(\.openSettings) var openSettings
     @State private var showHistory = false
 
     var body: some View {
@@ -53,6 +53,7 @@ struct MenuBarView: View {
                     openHistory()
                 }
                 MenuBarButton(title: "Settings", icon: "gear") {
+                    NSApp.activate(ignoringOtherApps: true)
                     openSettings()
                 }
             }
@@ -157,11 +158,6 @@ struct MenuBarView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func openSettings() {
-        NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func openHistory() {
