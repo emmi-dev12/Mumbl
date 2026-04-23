@@ -58,7 +58,9 @@ final class AudioRecordingService: ObservableObject {
     private func updateAudioLevel(_ buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData?[0] else { return }
         let frameLength = Int(buffer.frameLength)
-        let rms = sqrt(channelData[0..<frameLength].map { $0 * $0 }.reduce(0, +) / Float(frameLength))
+        let samples: [Float] = (0..<frameLength).map { channelData[$0] }
+        let sumOfSquares: Float = samples.reduce(0) { $0 + $1 * $1 }
+        let rms: Float = sqrt(sumOfSquares / Float(frameLength))
         Task { @MainActor in self.audioLevel = rms }
     }
 }
