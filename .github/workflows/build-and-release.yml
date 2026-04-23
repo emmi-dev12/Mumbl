@@ -60,9 +60,23 @@ jobs:
         run: |
           mkdir -p dist
           cp -r build/Build/Products/Release/Mumbl.app dist/
-          # Remove old Sparkle signature and sign with ad-hoc identity
-          codesign --remove-signature dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle 2>/dev/null || true
-          codesign --force --sign - --timestamp=none dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle
+
+      - name: Fix code signatures
+        run: |
+          # Re-sign entire app bundle with consistent ad-hoc identity
+          find dist/Mumbl.app/Contents/Frameworks -type f -perm +111 ! -name "*.dylib" | while read f; do
+            codesign --force --sign - "$f" 2>/dev/null || true
+          done
+          # Sign all dylibs
+          find dist/Mumbl.app/Contents/Frameworks -name "*.dylib" | while read f; do
+            codesign --force --sign - "$f" 2>/dev/null || true
+          done
+          # Sign frameworks
+          find dist/Mumbl.app/Contents/Frameworks -type d -name "*.framework" | while read f; do
+            codesign --force --sign - "$f" 2>/dev/null || true
+          done
+          # Finally sign the app
+          codesign --force --sign - --entitlements dist/Mumbl.app/Contents/Resources/Mumbl.entitlements dist/Mumbl.app 2>/dev/null || codesign --force --sign - dist/Mumbl.app
 
       - name: Create ZIP
         run: |
