@@ -49,7 +49,7 @@ jobs:
       - name: Fetch latest releases for appcast
         id: appcast
         run: |
-          RELEASES=$(gh release list --repo emmi-dev12/mumbl --limit 10 --json tagName,createdAt,body)
+          RELEASES=$(gh release list --repo emmi-dev12/mumbl --limit 10 --json tagName,createdAt)
           echo "$RELEASES" > /tmp/releases.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
