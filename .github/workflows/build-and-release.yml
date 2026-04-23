@@ -100,7 +100,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
-          files: dist/Mumbl-${{ steps.version.outputs.VERSION }}.zip
+          files: dist/Mumbl-*.zip
           generate_release_notes: true
           prerelease: false
 
