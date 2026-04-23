@@ -11,6 +11,7 @@ struct MumblApp: App {
             SettingsView()
                 .environmentObject(appDelegate.coordinator.settingsVM)
                 .environmentObject(appDelegate.coordinator.historyVM)
+                .environmentObject(appDelegate.coordinator.modelManager)
                 .modelContainer(appDelegate.coordinator.modelContainer)
         }
     }
