@@ -81,12 +81,24 @@ final class SettingsViewModel: ObservableObject {
 }
 
 enum IndicatorPosition: String, CaseIterable {
+    case topLeft = "topLeft"
     case topCenter = "topCenter"
+    case topRight = "topRight"
+    case bottomLeft = "bottomLeft"
+    case bottomCenter = "bottomCenter"
+    case bottomRight = "bottomRight"
+    case center = "center"
     case nearCursor = "nearCursor"
 
     var displayName: String {
         switch self {
+        case .topLeft: return "Top Left"
         case .topCenter: return "Top Center"
+        case .topRight: return "Top Right"
+        case .bottomLeft: return "Bottom Left"
+        case .bottomCenter: return "Bottom Center"
+        case .bottomRight: return "Bottom Right"
+        case .center: return "Center"
         case .nearCursor: return "Near Cursor"
         }
     }
