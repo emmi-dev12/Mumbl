@@ -47,7 +47,8 @@ jobs:
             build
 
           # Copy arm64 app bundle to final location
-          cp -r build-arm64/Build/Products/Release/Mumbl.app build/Build/Products/Release/Mumbl.app
+          mkdir -p build/Build/Products/Release
+          cp -r build-arm64/Build/Products/Release/Mumbl.app build/Build/Products/Release/
 
           # Create universal binary with lipo
           lipo -create \
