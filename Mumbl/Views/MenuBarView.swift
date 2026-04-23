@@ -137,13 +137,8 @@ struct MenuBarView: View {
         guard let shortcut = KeyboardShortcuts.getShortcut(for: name) else {
             return "Not set"
         }
-        var parts: [String] = []
-        if shortcut.modifiers.contains(.command) { parts.append("⌘") }
-        if shortcut.modifiers.contains(.control) { parts.append("⌃") }
-        if shortcut.modifiers.contains(.option) { parts.append("⌥") }
-        if shortcut.modifiers.contains(.shift) { parts.append("⇧") }
-        parts.append(shortcut.key.symbol)
-        return parts.joined()
+
+        return shortcut.description
     }
 
     private var recentSection: some View {

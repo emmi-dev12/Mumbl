@@ -32,18 +32,24 @@ jobs:
 
       - name: Build
         run: |
-          # Build for arm64
-          xcodebuild -scheme Mumbl \
+          # Build for arm64 without signing
+          xcodebuild -project Mumbl.xcodeproj -scheme Mumbl \
             -configuration Release \
             -derivedDataPath build-arm64 \
             -arch arm64 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             build
 
-          # Build for x86_64
-          xcodebuild -scheme Mumbl \
+          # Build for x86_64 without signing
+          xcodebuild -project Mumbl.xcodeproj -scheme Mumbl \
             -configuration Release \
             -derivedDataPath build-x86_64 \
             -arch x86_64 \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
             build
 
           # Copy arm64 app bundle to final location

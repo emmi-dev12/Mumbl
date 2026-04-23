@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/Mumbl && python3 - <<'PY3'\nimport urllib\\.request,re\nurl='https://raw\\.githubusercontent\\.com/sindresorhus/KeyboardShortcuts/main/Sources/KeyboardShortcuts/KeyboardShortcuts\\.swift'\ntext=urllib\\.request\\.urlopen\\(url, timeout=10\\)\\.read\\(\\)\\.decode\\('utf-8'\\)\nfor m in re\\.finditer\\(r'public struct Shortcut\\|struct Shortcut\\|public enum Key\\|struct Key\\|extension KeyboardShortcuts\\\\\\.Shortcut\\|typealias Shortcut', text\\):\n    print\\('---', m\\.group\\(0\\), 'at', m\\.start\\(\\)\\)\nprint\\('--- snippet around Shortcut'\\)\nidx=text\\.find\\('public struct Shortcut'\\)\nprint\\(text\\[idx:idx\\+2000\\]\\)\nPY3$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
