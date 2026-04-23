@@ -1,6 +1,7 @@
 import AVFoundation
 import Foundation
 import os.log
+import Darwin
 
 @MainActor
 final class AudioRecordingService: ObservableObject {
@@ -171,7 +172,7 @@ final class AudioRecordingService: ObservableObject {
     }
 
     // Boost quiet audio up to 24x to target a comfortable RMS for Whisper,
-    // then soft-clip via tanh so hard distortion never occurs.
+    // then soft-clip so hard distortion never occurs.
     private func amplifyBuffer(_ buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData else { return }
         let frameLength = Int(buffer.frameLength)
@@ -186,7 +187,9 @@ final class AudioRecordingService: ObservableObject {
             let gain = min(targetRMS / rms, maxGain)
             guard gain > 1.01 else { continue }
             for i in 0..<frameLength {
-                channelData[ch][i] = tanh(channelData[ch][i] * gain)
+                let amplified = channelData[ch][i] * gain
+                let absAmp = abs(amplified)
+                channelData[ch][i] = amplified / (1.0 + absAmp * 0.5)
             }
         }
     }
