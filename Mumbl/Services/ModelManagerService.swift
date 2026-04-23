@@ -43,7 +43,7 @@ final class ModelManagerService: ObservableObject {
     func download(_ model: WhisperModelSize) async throws {
         downloadProgress[model.rawValue] = 0.05
 
-        let ticker = Task { @MainActor [weak self] in
+        let ticker = Task { [weak self] @MainActor in
             var p = 0.1
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 600_000_000)
