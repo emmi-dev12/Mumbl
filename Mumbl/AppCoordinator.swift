@@ -44,7 +44,13 @@ final class AppCoordinator: ObservableObject {
         case .whisperKit:
             let engine = modelManager.makeEngine(for: settingsVM.selectedModelSize)
             appVM.currentEngine = engine
-            Task { try? await engine.load() }
+            Task {
+                do {
+                    try await engine.load()
+                } catch {
+                    appVM.recordingState = .error("Failed to load Whisper model: \(error.localizedDescription)")
+                }
+            }
         case .openAI:
             appVM.currentEngine = OpenAIEngine(apiKey: { [weak self] in self?.settingsVM.openAIKey })
         case .groq:

@@ -1,11 +1,13 @@
 import Foundation
 
 enum AICleanupProvider: String, CaseIterable {
+    case local = "local"
     case openAI = "openai"
     case groq = "groq"
 
     var displayName: String {
         switch self {
+        case .local: return "Local (no API key)"
         case .openAI: return "OpenAI (GPT-4o mini)"
         case .groq: return "Groq (Llama 3)"
         }
@@ -24,11 +26,34 @@ final class AICleanupService {
 
     func cleanup(_ text: String, provider: AICleanupProvider, apiKey: String) async throws -> String {
         switch provider {
+        case .local:
+            return cleanupLocal(text: text)
         case .openAI:
             return try await callOpenAI(text: text, apiKey: apiKey)
         case .groq:
             return try await callGroq(text: text, apiKey: apiKey)
         }
+    }
+
+    private func cleanupLocal(text: String) -> String {
+        var result = text
+        let fillerWords = [
+            "\\bum\\b", "\\buh\\b", "\\bahhh\\b", "\\buhh\\b", "\\bumm\\b",
+            "\\blike\\b", "\\byou know\\b", "\\byou know what\\b",
+            "\\bsort of\\b", "\\bkind of\\b", "\\bi mean\\b",
+            "\\bbasically\\b", "\\bliterally\\b", "\\bactually\\b",
+            "\\bor something\\b", "\\bor whatever\\b"
+        ]
+        for pattern in fillerWords {
+            result = result.replacingOccurrences(
+                of: pattern,
+                with: "",
+                options: [.regularExpression, .caseInsensitive]
+            )
+        }
+        result = result.replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+        result = result.trimmingCharacters(in: .whitespaces)
+        return result
     }
 
     private func callOpenAI(text: String, apiKey: String) async throws -> String {

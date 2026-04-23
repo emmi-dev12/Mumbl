@@ -1,4 +1,5 @@
 import SwiftUI
+import KeyboardShortcuts
 
 struct MenuBarView: View {
     @EnvironmentObject var appVM: AppViewModel
@@ -122,12 +123,27 @@ struct MenuBarView: View {
     private var shortcutsInfo: some View {
         HStack(spacing: 12) {
             if settingsVM.activationMode == .pushToTalk || settingsVM.activationMode == .both {
-                ShortcutChip(label: "Hold ⌥ Right", description: "Push-to-talk")
+                let pushToTalkLabel = shortcutString(for: .pushToTalk)
+                ShortcutChip(label: pushToTalkLabel, description: "Push-to-talk")
             }
             if settingsVM.activationMode == .toggle || settingsVM.activationMode == .both {
-                ShortcutChip(label: "⌘⇧Space", description: "Toggle")
+                let toggleLabel = shortcutString(for: .toggleRecording)
+                ShortcutChip(label: toggleLabel, description: "Toggle")
             }
         }
+    }
+
+    private func shortcutString(for name: KeyboardShortcuts.Name) -> String {
+        guard let shortcut = KeyboardShortcuts.getShortcut(for: name) else {
+            return "Not set"
+        }
+        var parts: [String] = []
+        if shortcut.modifiers.contains(.command) { parts.append("⌘") }
+        if shortcut.modifiers.contains(.control) { parts.append("⌃") }
+        if shortcut.modifiers.contains(.option) { parts.append("⌥") }
+        if shortcut.modifiers.contains(.shift) { parts.append("⇧") }
+        parts.append(shortcut.key.symbol)
+        return parts.joined()
     }
 
     private var recentSection: some View {

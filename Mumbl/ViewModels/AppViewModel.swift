@@ -102,6 +102,7 @@ final class AppViewModel: ObservableObject {
 
     private func keychainKey(for provider: AICleanupProvider) -> String? {
         switch provider {
+        case .local: return "unused"
         case .openAI: return KeychainService.shared.load(for: "openai_api_key")
         case .groq: return KeychainService.shared.load(for: "groq_api_key")
         }
