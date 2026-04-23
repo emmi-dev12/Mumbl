@@ -30,18 +30,7 @@ final class AudioRecordingService: ObservableObject {
         ])
 
         inputNode.installTap(onBus: 0, bufferSize: 4096, format: recordingFormat) { [weak self] buffer, _ in
-            guard let self, let audioFile = self.audioFile else { return }
-            do {
-                try audioFile.write(from: buffer)
-            } catch {}
-
-            // Update audio level
-            let channelData = buffer.floatChannelData?[0]
-            let frameLength = Int(buffer.frameLength)
-            if let data = channelData {
-                let rms = sqrt(data[0..<frameLength].map { $0 * $0 }.reduce(0, +) / Float(frameLength))
-                Task { @MainActor in self.audioLevel = rms }
-            }
+            self?.processAudioBuffer(buffer)
         }
 
         try audioEngine.start()
@@ -55,5 +44,21 @@ final class AudioRecordingService: ObservableObject {
         isRecording = false
         audioLevel = 0
         return outputURL
+    }
+
+    private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) {
+        guard let audioFile else { return }
+        do {
+            try audioFile.write(from: buffer)
+        } catch {}
+
+        updateAudioLevel(buffer)
+    }
+
+    private func updateAudioLevel(_ buffer: AVAudioPCMBuffer) {
+        guard let channelData = buffer.floatChannelData?[0] else { return }
+        let frameLength = Int(buffer.frameLength)
+        let rms = sqrt(channelData[0..<frameLength].map { $0 * $0 }.reduce(0, +) / Float(frameLength))
+        Task { @MainActor in self.audioLevel = rms }
     }
 }
