@@ -60,6 +60,9 @@ jobs:
         run: |
           mkdir -p dist
           cp -r build/Build/Products/Release/Mumbl.app dist/
+          # Re-sign Sparkle framework to match app code signature
+          codesign --force --sign - dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle
+          codesign --force --sign - dist/Mumbl.app/Contents/Frameworks/Sparkle.framework
 
       - name: Create ZIP
         run: |
