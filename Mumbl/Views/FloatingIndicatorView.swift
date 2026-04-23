@@ -97,12 +97,7 @@ final class FloatingIndicatorController {
             point = NSPoint(x: x, y: y)
             
         case .nearCursor:
-            guard let cursorLocation = NSEvent.mouseLocation else {
-                point = NSPoint(x: screenFrame.minX + (screenFrame.width - panelSize.width) / 2,
-                               y: screenFrame.maxY - panelSize.height - padding)
-                break
-            }
-            // Position above cursor with offset
+            let cursorLocation = NSEvent.mouseLocation
             point = NSPoint(x: cursorLocation.x - panelSize.width / 2,
                            y: cursorLocation.y + 30)
         }
