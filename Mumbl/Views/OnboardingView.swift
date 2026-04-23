@@ -7,7 +7,6 @@ struct OnboardingView: View {
     let onComplete: () -> Void
 
     @State private var step = 0
-    @State private var micGranted = false
     @State private var accessibilityGranted = false
     @State private var downloadProgress: Double = 0
     @State private var isDownloading = false
@@ -86,26 +85,19 @@ struct OnboardingView: View {
 
     private var micStep: some View {
         VStack(spacing: 16) {
-            Image(systemName: micGranted ? "mic.fill" : "mic.slash.fill")
+            Image(systemName: "mic.fill")
                 .font(.system(size: 60))
-                .foregroundStyle(micGranted ? .green : .purple)
+                .foregroundStyle(.purple)
             Text("Microphone Access")
                 .font(.title.bold())
-            Text("Mumbl needs microphone permission to capture your voice for transcription. Audio is processed locally by default — never uploaded without your consent.")
+            Text("Mumbl needs microphone permission to capture your voice. When you first use the dictation feature, macOS will ask for permission.")
                 .font(.body)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 380)
-            if !micGranted {
-                Button("Grant Microphone Access") {
-                    requestMic()
-                }
-                .buttonStyle(.bordered)
-                .tint(.purple)
-            } else {
-                Label("Microphone access granted", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-            }
+            Label("Permission will be requested on first use", systemImage: "info.circle.fill")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(.horizontal, 40)
     }
@@ -211,7 +203,6 @@ struct OnboardingView: View {
 
     private var nextDisabled: Bool {
         switch step {
-        case 1: return !micGranted
         case 3: return isDownloading
         default: return false
         }
@@ -220,16 +211,6 @@ struct OnboardingView: View {
     private func advanceStep() {
         if step == 4 { onComplete(); return }
         withAnimation { step += 1 }
-    }
-
-    private func requestMic() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            AVCaptureDevice.requestAccess(for: .audio) { [weak self] granted in
-                DispatchQueue.main.async {
-                    self?.micGranted = granted
-                }
-            }
-        }
     }
 
     private func openAccessibilitySettings() {
