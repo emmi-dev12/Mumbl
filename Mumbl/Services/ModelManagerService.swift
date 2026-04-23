@@ -12,21 +12,11 @@ enum WhisperModelSize: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .tiny: return "Tiny (75 MB)"
-        case .base: return "Base (145 MB)"
-        case .small: return "Small (465 MB)"
-        case .medium: return "Medium (1.5 GB)"
-        case .largev3: return "Large v3 (3 GB)"
-        }
-    }
-
-    var approximateSizeMB: Int {
-        switch self {
-        case .tiny: return 75
-        case .base: return 145
-        case .small: return 465
-        case .medium: return 1500
-        case .largev3: return 3000
+        case .tiny: return "Tiny (~75 MB)"
+        case .base: return "Base (~145 MB)"
+        case .small: return "Small (~465 MB)"
+        case .medium: return "Medium (~1.5 GB)"
+        case .largev3: return "Large v3 (~3 GB)"
         }
     }
 }
@@ -36,13 +26,13 @@ final class ModelManagerService: ObservableObject {
     @Published var downloadedModels: Set<String> = []
     @Published var downloadProgress: [String: Double] = [:]
 
-    private let cacheDir: URL = {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return support.appendingPathComponent("Mumbl/Models", isDirectory: true)
+    // WhisperKit stores models under ~/Library/Caches/huggingface/hub/models/argmaxinc/
+    private let whisperKitCacheBase: URL = {
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first!
+        return caches.appendingPathComponent("huggingface/hub/models/argmaxinc", isDirectory: true)
     }()
 
     init() {
-        try? FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
         refreshDownloaded()
     }
 
@@ -51,23 +41,43 @@ final class ModelManagerService: ObservableObject {
     }
 
     func download(_ model: WhisperModelSize) async throws {
-        downloadProgress[model.rawValue] = 0
-        // WhisperKit handles downloading to its own cache; we track completion
-        _ = try await WhisperKit(model: model.rawValue, verbose: false)
-        downloadedModels.insert(model.rawValue)
-        downloadProgress.removeValue(forKey: model.rawValue)
+        await MainActor.run { downloadProgress[model.rawValue] = 0.05 }
+
+        let config = WhisperKitConfig(model: model.rawValue, verbose: false, logLevel: .none)
+        _ = try await WhisperKit(config)
+
+        await MainActor.run {
+            downloadedModels.insert(model.rawValue)
+            downloadProgress.removeValue(forKey: model.rawValue)
+        }
     }
 
     func makeEngine(for model: WhisperModelSize) -> WhisperKitEngine {
         WhisperKitEngine(modelName: model.rawValue)
     }
 
-    private func refreshDownloaded() {
-        // Check WhisperKit model cache
-        for _ in WhisperModelSize.allCases {
-            // WhisperKit caches in ~/Library/Caches/huggingface/...
-            // We mark as available if WhisperKit can find the model locally
-            // This is a best-effort check
+    func refreshDownloaded() {
+        var found = Set<String>()
+        for model in WhisperModelSize.allCases {
+            if isModelCached(model) {
+                found.insert(model.rawValue)
+            }
         }
+        downloadedModels = found
+    }
+
+    private func isModelCached(_ model: WhisperModelSize) -> Bool {
+        // WhisperKit caches models in a path like:
+        // ~/Library/Caches/huggingface/hub/models/argmaxinc/whisperkit-coreml/...
+        let fm = FileManager.default
+        let base = whisperKitCacheBase
+        guard let contents = try? fm.contentsOfDirectory(atPath: base.path) else { return false }
+        for dir in contents {
+            let modelDir = base.appendingPathComponent(dir).appendingPathComponent(model.rawValue)
+            if fm.fileExists(atPath: modelDir.path) {
+                return true
+            }
+        }
+        return false
     }
 }
