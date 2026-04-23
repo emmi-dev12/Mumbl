@@ -7,11 +7,11 @@ final class AppCoordinator: ObservableObject {
     let settingsVM: SettingsViewModel
     let historyVM: HistoryViewModel
     let modelContainer: ModelContainer
+    let modelManager: ModelManagerService
 
     private let audioService = AudioRecordingService()
     private let textInsertion = TextInsertionService()
     private let hotkeyService = HotkeyService()
-    private let modelManager = ModelManagerService()
     private let aiCleanup = AICleanupService()
 
     init() {
@@ -19,10 +19,12 @@ final class AppCoordinator: ObservableObject {
         self.modelContainer = container
         self.settingsVM = SettingsViewModel()
         self.historyVM = HistoryViewModel(container: container)
+        let mgr = ModelManagerService()
+        self.modelManager = mgr
         self.appVM = AppViewModel(
             audioService: audioService,
             textInsertion: textInsertion,
-            modelManager: modelManager,
+            modelManager: mgr,
             aiCleanup: aiCleanup
         )
     }
@@ -44,7 +46,13 @@ final class AppCoordinator: ObservableObject {
         case .whisperKit:
             let engine = modelManager.makeEngine(for: settingsVM.selectedModelSize)
             appVM.currentEngine = engine
-            Task { try? await engine.load() }
+            Task {
+                do {
+                    try await engine.load()
+                } catch {
+                    appVM.recordingState = .error("Failed to load Whisper model: \(error.localizedDescription)")
+                }
+            }
         case .openAI:
             appVM.currentEngine = OpenAIEngine(apiKey: { [weak self] in self?.settingsVM.openAIKey })
         case .groq:

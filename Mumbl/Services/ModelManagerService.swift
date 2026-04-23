@@ -41,14 +41,26 @@ final class ModelManagerService: ObservableObject {
     }
 
     func download(_ model: WhisperModelSize) async throws {
-        await MainActor.run { downloadProgress[model.rawValue] = 0.05 }
+        downloadProgress[model.rawValue] = 0.05
 
-        let config = WhisperKitConfig(model: model.rawValue, verbose: false, logLevel: .none)
-        _ = try await WhisperKit(config)
+        let ticker = Task { @MainActor [weak self] in
+            var p = 0.1
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                p = min(p + 0.05, 0.9)
+                self?.downloadProgress[model.rawValue] = p
+            }
+        }
 
-        await MainActor.run {
+        do {
+            _ = try await WhisperKit(model: model.rawValue)
+            ticker.cancel()
             downloadedModels.insert(model.rawValue)
             downloadProgress.removeValue(forKey: model.rawValue)
+        } catch {
+            ticker.cancel()
+            downloadProgress.removeValue(forKey: model.rawValue)
+            throw error
         }
     }
 

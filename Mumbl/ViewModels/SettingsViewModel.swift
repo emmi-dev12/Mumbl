@@ -22,7 +22,7 @@ final class SettingsViewModel: ObservableObject {
     @AppStorage("selectedEngineID") var selectedEngineID: String = EngineID.whisperKit.rawValue
     @AppStorage("selectedModelSize") var selectedModelSizeRaw: String = WhisperModelSize.base.rawValue
     @AppStorage("aiCleanupEnabled") var aiCleanupEnabled: Bool = false
-    @AppStorage("aiCleanupProviderRaw") private var aiCleanupProviderRaw: String = AICleanupProvider.openAI.rawValue
+    @AppStorage("aiCleanupProviderRaw") private var aiCleanupProviderRaw: String = AICleanupProvider.local.rawValue
     @AppStorage("indicatorPosition") private var indicatorPositionRaw: String = IndicatorPosition.topCenter.rawValue
     @AppStorage("soundFeedbackEnabled") var soundFeedbackEnabled: Bool = true
     @AppStorage("showTranscriptionInIndicator") var showTranscriptionInIndicator: Bool = true

@@ -90,8 +90,8 @@ struct LaunchAtLoginToggle: View {
 
 struct ModelsTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
-    @StateObject private var modelManager = ModelManagerService()
-    @State private var downloadingModel: WhisperModelSize?
+    @EnvironmentObject var modelManager: ModelManagerService
+    @State private var downloadError: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -111,10 +111,16 @@ struct ModelsTab: View {
                                 size: size,
                                 isSelected: settingsVM.selectedModelSize == size,
                                 isDownloaded: modelManager.isDownloaded(size),
-                                isDownloading: downloadingModel == size,
+                                isDownloading: modelManager.downloadProgress[size.rawValue] != nil,
+                                progress: modelManager.downloadProgress[size.rawValue] ?? 0,
                                 onSelect: { settingsVM.selectedModelSize = size },
                                 onDownload: { download(size) }
                             )
+                        }
+                    }
+                    if let error = downloadError {
+                        Section {
+                            Text(error).font(.caption).foregroundStyle(.red)
                         }
                     }
                 }
@@ -122,13 +128,18 @@ struct ModelsTab: View {
             .formStyle(.grouped)
         }
         .padding()
+        .onAppear { modelManager.refreshDownloaded() }
     }
 
     private func download(_ size: WhisperModelSize) {
-        downloadingModel = size
+        downloadError = nil
         Task {
-            try? await modelManager.download(size)
-            downloadingModel = nil
+            do {
+                try await modelManager.download(size)
+                settingsVM.selectedModelSize = size
+            } catch {
+                downloadError = "Download failed: \(error.localizedDescription)"
+            }
         }
     }
 }
@@ -138,25 +149,37 @@ struct ModelRow: View {
     let isSelected: Bool
     let isDownloaded: Bool
     let isDownloading: Bool
+    let progress: Double
     let onSelect: () -> Void
     let onDownload: () -> Void
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
-                Text(size.displayName)
-                    .font(.body)
-                if isSelected {
-                    Text("Active").font(.caption).foregroundStyle(.purple)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(size.displayName).font(.body)
+                if isDownloading {
+                    ProgressView(value: progress)
+                        .frame(width: 120)
+                        .tint(.purple)
                 }
             }
             Spacer()
             if isDownloading {
-                ProgressView().scaleEffect(0.7)
+                Text("\(Int(progress * 100))%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } else if isDownloaded {
-                Button("Use", action: onSelect)
-                    .buttonStyle(.bordered)
-                    .disabled(isSelected)
+                if isSelected {
+                    Text("Active")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(.purple.opacity(0.15)))
+                        .foregroundStyle(.purple)
+                } else {
+                    Button("Use", action: onSelect)
+                        .buttonStyle(.bordered)
+                }
             } else {
                 Button("Download", action: onDownload)
                     .buttonStyle(.bordered)
@@ -191,9 +214,15 @@ struct AICleanupTab: View {
                         }
                     }
                     .pickerStyle(.radioGroup)
-                    Text("Requires a valid API key in Cloud APIs settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if settingsVM.aiCleanupProvider != .local {
+                        Text("Requires a valid API key in Cloud APIs settings.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Runs on-device: removes filler words and cleans up punctuation.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }

@@ -8,12 +8,16 @@ final class WhisperKitEngine: TranscriptionEngine, @unchecked Sendable {
 
     private var pipe: WhisperKit?
     private let modelName: String
+    private let loadLock = NSLock()
 
     init(modelName: String = "openai_whisper-base") {
         self.modelName = modelName
     }
 
     func load() async throws {
+        loadLock.lock()
+        defer { loadLock.unlock() }
+        if pipe != nil { return }
         pipe = try await WhisperKit(model: modelName)
     }
 
