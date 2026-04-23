@@ -41,7 +41,7 @@ final class HotkeyService {
             guard let self, let vm = self.appVM, let settings = self.settingsVM else { return }
             guard settings.activationMode == .toggle || settings.activationMode == .both else { return }
             Task {
-                if await vm.recordingState == .recording {
+                if vm.recordingState == .recording {
                     await vm.stopAndTranscribe()
                 } else {
                     await vm.startRecording()

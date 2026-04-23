@@ -94,7 +94,7 @@ struct MenuBarView: View {
         switch appVM.recordingState {
         case .recording: return "Recording…"
         case .processing: return "Transcribing…"
-        case .done(let t): return "Done"
+        case .done: return "Done"
         case .error: return "Error"
         case .idle: return "Ready"
         }

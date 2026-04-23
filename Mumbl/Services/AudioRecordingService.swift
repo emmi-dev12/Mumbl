@@ -46,13 +46,6 @@ final class AudioRecordingService: ObservableObject {
 
         try audioEngine.start()
         isRecording = true
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleRouteChange),
-            name: AVAudioSession.routeChangeNotification,
-            object: nil
-        )
     }
 
     func stopRecording() -> URL? {
@@ -61,18 +54,6 @@ final class AudioRecordingService: ObservableObject {
         audioFile = nil
         isRecording = false
         audioLevel = 0
-        NotificationCenter.default.removeObserver(self, name: AVAudioSession.routeChangeNotification, object: nil)
         return outputURL
-    }
-
-    @objc private func handleRouteChange() {
-        guard isRecording else { return }
-        // Restart engine after route change (e.g. AirPods switch)
-        audioEngine.stop()
-        do {
-            try audioEngine.start()
-        } catch {
-            isRecording = false
-        }
     }
 }

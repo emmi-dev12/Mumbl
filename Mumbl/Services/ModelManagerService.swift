@@ -64,7 +64,7 @@ final class ModelManagerService: ObservableObject {
 
     private func refreshDownloaded() {
         // Check WhisperKit model cache
-        for model in WhisperModelSize.allCases {
+        for _ in WhisperModelSize.allCases {
             // WhisperKit caches in ~/Library/Caches/huggingface/...
             // We mark as available if WhisperKit can find the model locally
             // This is a best-effort check
