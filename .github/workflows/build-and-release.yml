@@ -40,7 +40,12 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            build
+            build 2>&1 | tee /tmp/build-arm64.log; BUILD_ARM64=${PIPESTATUS[0]}
+          if [ $BUILD_ARM64 -ne 0 ]; then
+            echo "::error::arm64 build failed — Swift errors:"
+            grep -E "error:|warning: " /tmp/build-arm64.log | grep -v "note:" | head -60
+            exit $BUILD_ARM64
+          fi
 
           # Build for x86_64 without signing
           xcodebuild -project Mumbl.xcodeproj -scheme Mumbl \
