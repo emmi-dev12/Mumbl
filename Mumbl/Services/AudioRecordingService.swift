@@ -98,8 +98,8 @@ final class AudioRecordingService: ObservableObject {
     }
 
     private func processBuffer(_ inputBuffer: AVAudioPCMBuffer) {
-        updateAudioLevel(inputBuffer)
         amplifyBuffer(inputBuffer)
+        updateAudioLevel(inputBuffer)
 
         guard let converter, let audioFile, audioFile.processingFormat.channelCount > 0 else {
             return
@@ -170,18 +170,23 @@ final class AudioRecordingService: ObservableObject {
         Task { @MainActor in self.audioLevel = min(rms * 8, 1.0) }
     }
 
-    // Boost quiet audio (whispers) before conversion — multiplies gain up to 4x
+    // Boost quiet audio up to 24x to target a comfortable RMS for Whisper,
+    // then soft-clip via tanh so hard distortion never occurs.
     private func amplifyBuffer(_ buffer: AVAudioPCMBuffer) {
         guard let channelData = buffer.floatChannelData else { return }
         let frameLength = Int(buffer.frameLength)
         let channelCount = Int(buffer.format.channelCount)
+        let targetRMS: Float = 0.12
+        let maxGain: Float = 24.0
         for ch in 0..<channelCount {
             var rms: Float = 0
             for i in 0..<frameLength { rms += channelData[ch][i] * channelData[ch][i] }
             rms = sqrt(rms / Float(max(frameLength, 1)))
-            let gain: Float = rms < 0.01 ? min(0.05 / max(rms, 0.001), 4.0) : 1.0
-            if gain > 1.01 {
-                for i in 0..<frameLength { channelData[ch][i] *= gain }
+            guard rms > 0.0002 else { continue }
+            let gain = min(targetRMS / rms, maxGain)
+            guard gain > 1.01 else { continue }
+            for i in 0..<frameLength {
+                channelData[ch][i] = tanh(channelData[ch][i] * gain)
             }
         }
     }
