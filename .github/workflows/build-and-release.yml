@@ -75,8 +75,8 @@ jobs:
           find dist/Mumbl.app/Contents/Frameworks -type d -name "*.framework" | while read f; do
             codesign --force --sign - "$f" 2>/dev/null || true
           done
-          # Finally sign the app
-          codesign --force --sign - --entitlements dist/Mumbl.app/Contents/Resources/Mumbl.entitlements dist/Mumbl.app 2>/dev/null || codesign --force --sign - dist/Mumbl.app
+          # Finally sign the app with entitlements
+          codesign --force --sign - --entitlements Mumbl/Mumbl.entitlements dist/Mumbl.app
 
       - name: Create ZIP
         run: |
