@@ -25,7 +25,7 @@ final class HotkeyService {
             guard settings.activationMode == .pushToTalk || settings.activationMode == .both else { return }
             guard !self.isKeyHeld else { return }
             self.isKeyHeld = true
-            Task { await vm.startRecording() }
+            Task { @MainActor in await vm.startRecording() }
         }
 
         KeyboardShortcuts.onKeyUp(for: .pushToTalk) { [weak self] in
@@ -33,14 +33,14 @@ final class HotkeyService {
             guard settings.activationMode == .pushToTalk || settings.activationMode == .both else { return }
             guard self.isKeyHeld else { return }
             self.isKeyHeld = false
-            Task { await vm.stopAndTranscribe() }
+            Task { @MainActor in await vm.stopAndTranscribe() }
         }
 
         // Toggle: press to start, press again to stop
         KeyboardShortcuts.onKeyDown(for: .toggleRecording) { [weak self] in
             guard let self, let vm = self.appVM, let settings = self.settingsVM else { return }
             guard settings.activationMode == .toggle || settings.activationMode == .both else { return }
-            Task {
+            Task { @MainActor in
                 if vm.recordingState == .recording {
                     await vm.stopAndTranscribe()
                 } else {
