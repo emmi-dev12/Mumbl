@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+  releases: write
+
 jobs:
   build:
     runs-on: macos-15
@@ -74,7 +78,7 @@ jobs:
           version = "${{ steps.version.outputs.VERSION }}"
           appcast += f"""        <item>
                       <title>Version {version}</title>
-                      <pubDate>{datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>
+                      <pubDate>{datetime.now(datetime.timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>
                       <sparkle:version>{version}</sparkle:version>
                       <sparkle:shortVersionString>{version}</sparkle:shortVersionString>
                       <link>https://github.com/emmi-dev12/mumbl/releases/tag/{version}</link>
