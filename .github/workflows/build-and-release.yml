@@ -32,11 +32,26 @@ jobs:
 
       - name: Build
         run: |
+          # Build for arm64
           xcodebuild -scheme Mumbl \
             -configuration Release \
-            -derivedDataPath build \
-            -arch arm64 -arch x86_64 \
+            -derivedDataPath build-arm64 \
+            -arch arm64 \
             build
+
+          # Build for x86_64
+          xcodebuild -scheme Mumbl \
+            -configuration Release \
+            -derivedDataPath build-x86_64 \
+            -arch x86_64 \
+            build
+
+          # Create universal binary
+          mkdir -p build/Build/Products/Release
+          lipo -create \
+            build-arm64/Build/Products/Release/Mumbl.app/Contents/MacOS/Mumbl \
+            build-x86_64/Build/Products/Release/Mumbl.app/Contents/MacOS/Mumbl \
+            -output build/Build/Products/Release/Mumbl.app/Contents/MacOS/Mumbl
 
       - name: Create app bundle
         run: |
