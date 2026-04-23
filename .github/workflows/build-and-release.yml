@@ -60,8 +60,9 @@ jobs:
         run: |
           mkdir -p dist
           cp -r build/Build/Products/Release/Mumbl.app dist/
-          # Re-sign Sparkle framework binary to match app code signature
-          codesign --force --sign - dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle
+          # Remove old Sparkle signature and sign with ad-hoc identity
+          codesign --remove-signature dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle 2>/dev/null || true
+          codesign --force --sign - --timestamp=none dist/Mumbl.app/Contents/Frameworks/Sparkle.framework/Versions/B/Sparkle
 
       - name: Create ZIP
         run: |
