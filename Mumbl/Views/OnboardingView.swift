@@ -223,8 +223,11 @@ struct OnboardingView: View {
     }
 
     private func requestMic() {
-        AVCaptureDevice.requestAccess(for: .audio) { granted in
-            DispatchQueue.main.async { micGranted = granted }
+        Task {
+            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            await MainActor.run {
+                micGranted = granted
+            }
         }
     }
 
