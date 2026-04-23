@@ -30,7 +30,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     }
 
     private func setupUpdater() {
-        updater.updater.delegate = self
         if UserDefaults.standard.bool(forKey: "autoUpdateEnabled") {
             updater.updater.checkForUpdatesInBackground()
         }
