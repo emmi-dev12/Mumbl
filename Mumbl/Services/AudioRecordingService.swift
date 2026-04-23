@@ -75,7 +75,7 @@ final class AudioRecordingService: ObservableObject {
         defer { cleanupAudioEngine() }
         
         let duration = recordingStartTime.map { Date().timeIntervalSince($0) } ?? 0
-        logger.info("Stopping audio recording after \(String(format: "%.2f", duration))s, buffer errors: \(bufferWriteErrors)")
+        logger.info("Stopping audio recording after \(String(format: "%.2f", duration))s, buffer errors: \(self.bufferWriteErrors)")
         
         audioEngine.inputNode.removeTap(onBus: 0)
         audioEngine.stop()

@@ -51,10 +51,10 @@ final class FloatingIndicatorController {
             }
         }.store(in: &cancellables)
         
-        // Watch position changes
-        settingsVM.$indicatorPosition.sink { [weak self] position in
+        // Watch position changes (indicatorPosition is computed over @AppStorage, so observe objectWillChange)
+        settingsVM.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in
-                self?.updatePosition(position: position)
+                self?.updatePosition(position: settingsVM.indicatorPosition)
             }
         }.store(in: &cancellables)
     }
@@ -210,7 +210,7 @@ struct FloatingIndicatorView: View {
         }
     }
 
-    private var borderGradient: any ShapeStyle {
+    private var borderGradient: AnyShapeStyle {
         switch appVM.recordingState {
         case .recording:
             return AnyShapeStyle(
