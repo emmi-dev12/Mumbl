@@ -32,7 +32,7 @@ final class AppCoordinator: ObservableObject {
     func start() {
         appVM.currentSettings = settingsVM
         hotkeyService.setup(appVM: appVM, settingsVM: settingsVM)
-        FloatingIndicatorController.shared.setup(appVM: appVM)
+        FloatingIndicatorController.shared.setup(appVM: appVM, settingsVM: settingsVM)
         wireEngine()
 
         if settingsVM.isFirstLaunch {

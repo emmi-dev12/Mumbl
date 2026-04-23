@@ -6,28 +6,35 @@ struct SettingsView: View {
     @EnvironmentObject var historyVM: HistoryViewModel
 
     var body: some View {
-        TabView {
-            GeneralTab()
-                .tabItem { Label("General", systemImage: "gear") }
+        ZStack {
+            // Cyberpunk dark background
+            CyberpunkColors.darkBg
+                .ignoresSafeArea()
+            
+            TabView {
+                GeneralTab()
+                    .tabItem { Label("General", systemImage: "gear") }
 
-            ModelsTab()
-                .tabItem { Label("Models", systemImage: "cpu") }
+                ModelsTab()
+                    .tabItem { Label("Models", systemImage: "cpu") }
 
-            AICleanupTab()
-                .tabItem { Label("AI Cleanup", systemImage: "sparkles") }
+                AICleanupTab()
+                    .tabItem { Label("AI Cleanup", systemImage: "sparkles") }
 
-            HotkeysTab()
-                .tabItem { Label("Hotkeys", systemImage: "keyboard") }
+                HotkeysTab()
+                    .tabItem { Label("Hotkeys", systemImage: "keyboard") }
 
-            CloudAPITab()
-                .tabItem { Label("Cloud APIs", systemImage: "cloud") }
+                CloudAPITab()
+                    .tabItem { Label("Cloud APIs", systemImage: "cloud") }
 
-            AboutTab()
-                .tabItem { Label("About", systemImage: "info.circle") }
+                AboutTab()
+                    .tabItem { Label("About", systemImage: "info.circle") }
+            }
+            .frame(width: 520, height: 450)
+            .environmentObject(settingsVM)
+            .environmentObject(historyVM)
+            .preferredColorScheme(.dark)
         }
-        .frame(width: 520, height: 400)
-        .environmentObject(settingsVM)
-        .environmentObject(historyVM)
     }
 }
 
@@ -37,41 +44,51 @@ struct GeneralTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        Form {
-            Section("Activation") {
-                Picker("Mode", selection: Binding(
-                    get: { settingsVM.activationMode },
-                    set: { settingsVM.activationMode = $0 }
-                )) {
-                    ForEach(ActivationMode.allCases, id: \.self) { mode in
-                        Text(mode.displayName).tag(mode)
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
+            
+            Form {
+                Section("Activation", content: {
+                    Picker("Mode", selection: Binding(
+                        get: { settingsVM.activationMode },
+                        set: { settingsVM.activationMode = $0 }
+                    )) {
+                        ForEach(ActivationMode.allCases, id: \.self) { mode in
+                            Text(mode.displayName)
+                                .tag(mode)
+                                .foregroundStyle(CyberpunkColors.textPrimary)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-            }
+                    .pickerStyle(.segmented)
+                })
 
-            Section("Indicator") {
-                Picker("Position", selection: Binding(
-                    get: { settingsVM.indicatorPosition },
-                    set: { settingsVM.indicatorPosition = $0 }
-                )) {
-                    ForEach(IndicatorPosition.allCases, id: \.self) { pos in
-                        Text(pos.displayName).tag(pos)
+                Section("🎤 Floating Indicator", content: {
+                    Picker("Position", selection: Binding(
+                        get: { settingsVM.indicatorPosition },
+                        set: { settingsVM.indicatorPosition = $0 }
+                    )) {
+                        ForEach(IndicatorPosition.allCases, id: \.self) { pos in
+                            Text(pos.displayName)
+                                .tag(pos)
+                                .foregroundStyle(CyberpunkColors.textPrimary)
+                        }
                     }
-                }
-                Toggle("Show transcription preview", isOn: $settingsVM.showTranscriptionInIndicator)
-            }
+                    Toggle("Show transcription preview", isOn: $settingsVM.showTranscriptionInIndicator)
+                        .tint(CyberpunkColors.neonPink)
+                })
 
-            Section("Feedback") {
-                Toggle("Sound feedback", isOn: $settingsVM.soundFeedbackEnabled)
-            }
+                Section("Feedback", content: {
+                    Toggle("Sound feedback", isOn: $settingsVM.soundFeedbackEnabled)
+                        .tint(CyberpunkColors.neonPink)
+                })
 
-            Section("Launch") {
-                LaunchAtLoginToggle()
+                Section("Launch", content: {
+                    LaunchAtLoginToggle()
+                })
             }
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
         }
-        .formStyle(.grouped)
-        .padding()
     }
 }
 
@@ -80,6 +97,7 @@ struct LaunchAtLoginToggle: View {
 
     var body: some View {
         Toggle("Launch at login", isOn: $enabled)
+            .tint(CyberpunkColors.neonPink)
             .onChange(of: enabled) { _, new in
                 // SMAppService integration would go here
             }
@@ -94,41 +112,50 @@ struct ModelsTab: View {
     @State private var downloadError: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Form {
-                Section("Transcription Engine") {
-                    Picker("Engine", selection: $settingsVM.selectedEngineID) {
-                        ForEach(EngineID.allCases, id: \.rawValue) { engine in
-                            Text(engine.displayName).tag(engine.rawValue)
+        ZStack {
+            CyberpunkColors.darkBg.ignoresSafeArea()
+            
+            VStack(alignment: .leading, spacing: 0) {
+                Form {
+                    Section("Transcription Engine") {
+                        Picker("Engine", selection: $settingsVM.selectedEngineID) {
+                            ForEach(EngineID.allCases, id: \.rawValue) { engine in
+                                Text(engine.displayName)
+                                    .tag(engine.rawValue)
+                                    .foregroundStyle(CyberpunkColors.textPrimary)
+                            }
                         }
                     }
-                }
 
-                if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
-                    Section("Local Model") {
-                        ForEach(WhisperModelSize.allCases) { size in
-                            ModelRow(
-                                size: size,
-                                isSelected: settingsVM.selectedModelSize == size,
-                                isDownloaded: modelManager.isDownloaded(size),
-                                isDownloading: modelManager.downloadProgress[size.rawValue] != nil,
-                                progress: modelManager.downloadProgress[size.rawValue] ?? 0,
-                                onSelect: { settingsVM.selectedModelSize = size },
-                                onDownload: { download(size) }
-                            )
+                    if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
+                        Section("🧠 Local Model") {
+                            ForEach(WhisperModelSize.allCases) { size in
+                                ModelRow(
+                                    size: size,
+                                    isSelected: settingsVM.selectedModelSize == size,
+                                    isDownloaded: modelManager.isDownloaded(size),
+                                    isDownloading: modelManager.downloadProgress[size.rawValue] != nil,
+                                    progress: modelManager.downloadProgress[size.rawValue] ?? 0,
+                                    onSelect: { settingsVM.selectedModelSize = size },
+                                    onDownload: { download(size) }
+                                )
+                            }
                         }
-                    }
-                    if let error = downloadError {
-                        Section {
-                            Text(error).font(.caption).foregroundStyle(.red)
+                        if let error = downloadError {
+                            Section {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundStyle(CyberpunkColors.accentYellow)
+                            }
                         }
                     }
                 }
+                .formStyle(.grouped)
+                .scrollContentBackground(.hidden)
             }
-            .formStyle(.grouped)
+            .padding()
+            .onAppear { modelManager.refreshDownloaded() }
         }
-        .padding()
-        .onAppear { modelManager.refreshDownloaded() }
     }
 
     private func download(_ size: WhisperModelSize) {
@@ -156,34 +183,38 @@ struct ModelRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(size.displayName).font(.body)
+                Text(size.displayName)
+                    .font(.body)
+                    .foregroundStyle(CyberpunkColors.textPrimary)
                 if isDownloading {
                     ProgressView(value: progress)
                         .frame(width: 120)
-                        .tint(.purple)
+                        .tint(CyberpunkColors.neonMagenta)
                 }
             }
             Spacer()
             if isDownloading {
                 Text("\(Int(progress * 100))%")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CyberpunkColors.textSecondary)
             } else if isDownloaded {
                 if isSelected {
                     Text("Active")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Capsule().fill(.purple.opacity(0.15)))
-                        .foregroundStyle(.purple)
+                        .background(Capsule().fill(CyberpunkColors.neonPink.opacity(0.2)))
+                        .foregroundStyle(CyberpunkColors.neonPink)
+                        .neonGlow(CyberpunkColors.neonPink, radius: 4)
                 } else {
                     Button("Use", action: onSelect)
                         .buttonStyle(.bordered)
+                        .tint(CyberpunkColors.neonMagenta)
                 }
             } else {
                 Button("Download", action: onDownload)
                     .buttonStyle(.bordered)
-                    .tint(.purple)
+                    .tint(CyberpunkColors.neonMagenta)
             }
         }
     }

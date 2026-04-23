@@ -9,86 +9,128 @@ struct MenuBarView: View {
     @State private var showHistory = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack {
-                Image(systemName: "waveform.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.purple)
-                Text("Mumbl")
-                    .font(.headline)
-                Spacer()
-                Button(action: { NSApp.terminate(nil) }) {
-                    Image(systemName: "power")
-                        .foregroundStyle(.secondary)
+        ZStack {
+            // Cyberpunk dark background
+            CyberpunkColors.darkBg
+                .ignoresSafeArea()
+            
+            VStack(spacing: 0) {
+                // Header with neon styling
+                HStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.title2)
+                            .foregroundStyle(CyberpunkColors.neonPink)
+                            .neonGlow(CyberpunkColors.neonPink, radius: 4)
+                        Text("Mumbl")
+                            .font(.headline)
+                            .foregroundStyle(CyberpunkColors.textPrimary)
+                            .neonGlow(CyberpunkColors.neonMagenta, radius: 2)
+                    }
+                    Spacer()
+                    Button(action: { NSApp.terminate(nil) }) {
+                        Image(systemName: "power")
+                            .foregroundStyle(CyberpunkColors.textSecondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Quit Mumbl")
                 }
-                .buttonStyle(.plain)
-                .help("Quit Mumbl")
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 10)
-
-            Divider()
-
-            // Status card
-            statusCard
-                .padding(.horizontal, 12)
-                .padding(.top, 10)
-
-            // Shortcuts info
-            shortcutsInfo
                 .padding(.horizontal, 16)
-                .padding(.top, 10)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
 
-            Divider().padding(.top, 10)
+                Divider()
+                    .background(CyberpunkColors.neonPink.opacity(0.2))
 
-            // Recent transcriptions
-            recentSection
+                // Status card with neon border
+                statusCard
+                    .padding(.horizontal, 12)
+                    .padding(.top, 10)
 
-            Divider()
+                // Shortcuts info
+                shortcutsInfo
+                    .padding(.horizontal, 16)
+                    .padding(.top, 10)
 
-            // Footer actions
-            HStack(spacing: 0) {
-                MenuBarButton(title: "History", icon: "clock") {
-                    openHistory()
+                Divider()
+                    .background(CyberpunkColors.neonMagenta.opacity(0.2))
+
+                // Recent transcriptions
+                recentSection
+
+                Divider()
+                    .background(CyberpunkColors.neonPink.opacity(0.2))
+
+                // Footer actions
+                HStack(spacing: 0) {
+                    MenuBarButton(title: "History", icon: "clock") {
+                        openHistory()
+                    }
+                    MenuBarButton(title: "Settings", icon: "gear") {
+                        NSApp.activate(ignoringOtherApps: true)
+                        openSettings()
+                    }
                 }
-                MenuBarButton(title: "Settings", icon: "gear") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openSettings()
-                }
+                .padding(.bottom, 4)
             }
-            .padding(.bottom, 4)
+            .frame(width: 320)
         }
-        .frame(width: 320)
     }
 
     private var statusCard: some View {
         HStack(spacing: 12) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 10, height: 10)
+            // Status indicator dot
+            ZStack {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 10, height: 10)
+                    .neonGlow(statusColor, radius: 3)
+                
+                if appVM.recordingState == .recording {
+                    Circle()
+                        .stroke(statusColor.opacity(0.3), lineWidth: 2)
+                        .frame(width: 18, height: 18)
+                }
+            }
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text(statusTitle)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(CyberpunkColors.textPrimary)
                 Text(statusSubtitle)
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(CyberpunkColors.textSecondary)
+                    .lineLimit(1)
             }
             Spacer()
             engineBadge
         }
         .padding(12)
-        .background(RoundedRectangle(cornerRadius: 10).fill(.quinary))
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(CyberpunkColors.darkBgAlt)
+                .stroke(borderColor, lineWidth: 1)
+        )
+        .neonGlow(borderColor, radius: 5)
+    }
+
+    private var borderColor: Color {
+        switch appVM.recordingState {
+        case .recording: return CyberpunkColors.recordingRed
+        case .processing: return CyberpunkColors.processingBlue
+        case .done: return CyberpunkColors.successGreen
+        case .error: return CyberpunkColors.accentYellow
+        case .idle: return CyberpunkColors.neonPink.opacity(0.3)
+        }
     }
 
     private var statusColor: Color {
         switch appVM.recordingState {
-        case .recording: return .red
-        case .processing: return .orange
-        case .done: return .green
-        case .error: return .orange
-        case .idle: return .green
+        case .recording: return CyberpunkColors.recordingRed
+        case .processing: return CyberpunkColors.processingBlue
+        case .done: return CyberpunkColors.successGreen
+        case .error: return CyberpunkColors.accentYellow
+        case .idle: return CyberpunkColors.neonPink
         }
     }
 
@@ -113,11 +155,12 @@ struct MenuBarView: View {
 
     private var engineBadge: some View {
         Text(EngineID(rawValue: settingsVM.selectedEngineID)?.displayName ?? "Local")
-            .font(.system(size: 10, weight: .medium))
+            .font(.system(size: 10, weight: .semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(Capsule().fill(.purple.opacity(0.15)))
-            .foregroundStyle(.purple)
+            .background(Capsule().fill(CyberpunkColors.neonMagenta.opacity(0.2)))
+            .foregroundStyle(CyberpunkColors.neonMagenta)
+            .neonGlow(CyberpunkColors.neonMagenta, radius: 2)
     }
 
     private var shortcutsInfo: some View {
@@ -145,20 +188,20 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Recent")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CyberpunkColors.neonCyan)
                 .padding(.horizontal, 16)
                 .padding(.top, 10)
 
             if appVM.lastTranscription.isEmpty {
                 Text("No transcriptions yet")
                     .font(.system(size: 12))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(CyberpunkColors.textMuted)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 10)
             } else {
                 Text(appVM.lastTranscription)
                     .font(.system(size: 12))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(CyberpunkColors.textPrimary)
                     .lineLimit(3)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 10)
@@ -197,12 +240,14 @@ struct ShortcutChip: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
                 .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                .foregroundStyle(CyberpunkColors.neonCyan)
+                .neonGlow(CyberpunkColors.neonCyan, radius: 2)
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: 4).fill(.quaternary))
+                .background(RoundedRectangle(cornerRadius: 4).fill(CyberpunkColors.neonCyan.opacity(0.1)))
             Text(description)
                 .font(.system(size: 10))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CyberpunkColors.textSecondary)
         }
     }
 }
@@ -211,18 +256,28 @@ struct MenuBarButton: View {
     let title: String
     let icon: String
     let action: () -> Void
+    @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: icon)
-                .font(.system(size: 12))
+                .font(.system(size: 12, weight: .medium))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
+                .foregroundStyle(CyberpunkColors.textPrimary)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(isHovered ? CyberpunkColors.neonPink.opacity(0.15) : CyberpunkColors.darkBgAlt)
+                )
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.primary)
         .contentShape(Rectangle())
-        .hoverEffect()
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isHovered = hovering
+            }
+        }
+        .padding(.horizontal, 4)
     }
 }
 
