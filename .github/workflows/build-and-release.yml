@@ -35,7 +35,7 @@ jobs:
           xcodebuild -scheme Mumbl \
             -configuration Release \
             -derivedDataPath build \
-            -arch arm64 \
+            -arch arm64 -arch x86_64 \
             build
 
       - name: Create app bundle
