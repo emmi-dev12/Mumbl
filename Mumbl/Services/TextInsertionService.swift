@@ -19,8 +19,8 @@ final class TextInsertionService {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             pasteboard.clearContents()
-            if let saved = savedContents, !saved.isEmpty {
-                saved.forEach { type, data in
+            if !savedContents.isEmpty {
+                savedContents.forEach { type, data in
                     pasteboard.setData(data, forType: type)
                 }
             }
