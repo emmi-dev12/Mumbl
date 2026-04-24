@@ -7,12 +7,21 @@ struct MumblApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        Settings {
-            SettingsView()
+        Window("Mumbl", id: "main") {
+            MainWindowView()
+                .environmentObject(appDelegate.coordinator.appVM)
                 .environmentObject(appDelegate.coordinator.settingsVM)
                 .environmentObject(appDelegate.coordinator.historyVM)
                 .environmentObject(appDelegate.coordinator.modelManager)
                 .modelContainer(appDelegate.coordinator.modelContainer)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 960, height: 660)
+        .defaultPosition(.center)
+        .commands {
+            // Remove default Settings menu item since settings are inside the main window
+            CommandGroup(replacing: .appSettings) { }
         }
     }
 }
@@ -20,14 +29,18 @@ struct MumblApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
     let coordinator = AppCoordinator()
     private var statusItem: NSStatusItem?
-    private var popover: NSPopover?
-    private let updater = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    private let updater = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
+    )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSApp.setActivationPolicy(.accessory)
         setupStatusItem()
         coordinator.start()
         setupUpdater()
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 
     private func setupUpdater() {
@@ -38,34 +51,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, SPUUpdaterDelegate {
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-
         if let button = statusItem?.button {
             button.image = NSImage(systemSymbolName: "waveform.circle", accessibilityDescription: "Mumbl")
             button.image?.isTemplate = true
-            button.action = #selector(togglePopover)
+            button.action = #selector(openMainWindow)
             button.target = self
         }
-
-        let pop = NSPopover()
-        pop.contentViewController = NSHostingController(
-            rootView: MenuBarView()
-                .environmentObject(coordinator.appVM)
-                .environmentObject(coordinator.settingsVM)
-                .environmentObject(coordinator.historyVM)
-                .modelContainer(coordinator.modelContainer)
-        )
-        pop.behavior = .transient
-        pop.contentSize = NSSize(width: 320, height: 420)
-        popover = pop
     }
 
-    @objc private func togglePopover() {
-        guard let button = statusItem?.button, let popover else { return }
-        if popover.isShown {
-            popover.performClose(nil)
-        } else {
-            popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
-            NSApp.activate(ignoringOtherApps: true)
+    @objc private func openMainWindow() {
+        NSApp.activate(ignoringOtherApps: true)
+        for window in NSApp.windows where window.identifier?.rawValue == "main" {
+            window.makeKeyAndOrderFront(nil)
+            return
         }
+        NSApp.windows.first?.makeKeyAndOrderFront(nil)
     }
 }
