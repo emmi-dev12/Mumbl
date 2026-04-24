@@ -1,40 +1,89 @@
 import SwiftUI
 import KeyboardShortcuts
 
+// MARK: - Settings Section
+
+enum SettingsSection: String, CaseIterable, Hashable {
+    case general, models, hotkeys, aiCleanup, cloudAPIs, about
+
+    var label: String {
+        switch self {
+        case .general: return "General"
+        case .models: return "Models"
+        case .hotkeys: return "Hotkeys"
+        case .aiCleanup: return "AI Cleanup"
+        case .cloudAPIs: return "Cloud APIs"
+        case .about: return "About"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .general: return "gear"
+        case .models: return "cpu"
+        case .hotkeys: return "keyboard"
+        case .aiCleanup: return "sparkles"
+        case .cloudAPIs: return "cloud"
+        case .about: return "info.circle"
+        }
+    }
+}
+
+// MARK: - Settings Root
+
 struct SettingsView: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
+    @State private var selected: SettingsSection = .general
 
     var body: some View {
-        ZStack {
-            // Cyberpunk dark background
-            CyberpunkColors.darkBg
-                .ignoresSafeArea()
-            
-            TabView {
-                GeneralTab()
-                    .tabItem { Label("General", systemImage: "gear") }
-
-                ModelsTab()
-                    .tabItem { Label("Models", systemImage: "cpu") }
-
-                AICleanupTab()
-                    .tabItem { Label("AI Cleanup", systemImage: "sparkles") }
-
-                HotkeysTab()
-                    .tabItem { Label("Hotkeys", systemImage: "keyboard") }
-
-                CloudAPITab()
-                    .tabItem { Label("Cloud APIs", systemImage: "cloud") }
-
-                AboutTab()
-                    .tabItem { Label("About", systemImage: "info.circle") }
-            }
-            .frame(width: 520, height: 450)
-            .environmentObject(settingsVM)
-            .environmentObject(historyVM)
-            .preferredColorScheme(.dark)
+        NavigationSplitView(columnVisibility: .constant(.all)) {
+            sidebar
+        } detail: {
+            detail
+                .environmentObject(settingsVM)
+                .environmentObject(historyVM)
         }
+        .frame(width: 620, height: 460)
+        .preferredColorScheme(.dark)
+        .navigationSplitViewStyle(.prominentDetail)
+    }
+
+    private var sidebar: some View {
+        List(selection: $selected) {
+            ForEach(SettingsSection.allCases, id: \.self) { section in
+                SidebarRow(section: section, isSelected: selected == section)
+                    .tag(section)
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(AppColors.surface)
+        .navigationSplitViewColumnWidth(min: 150, ideal: 160, max: 180)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        switch selected {
+        case .general: GeneralTab()
+        case .models: ModelsTab()
+        case .hotkeys: HotkeysTab()
+        case .aiCleanup: AICleanupTab()
+        case .cloudAPIs: CloudAPITab()
+        case .about: AboutTab()
+        }
+    }
+}
+
+struct SidebarRow: View {
+    let section: SettingsSection
+    let isSelected: Bool
+
+    var body: some View {
+        Label(section.label, systemImage: section.icon)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundStyle(isSelected ? AppColors.accent : AppColors.textSecondary)
+            .padding(.vertical, 1)
     }
 }
 
@@ -44,51 +93,72 @@ struct GeneralTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-            
-            Form {
-                Section("Activation", content: {
-                    Picker("Mode", selection: Binding(
-                        get: { settingsVM.activationMode },
-                        set: { settingsVM.activationMode = $0 }
-                    )) {
-                        ForEach(ActivationMode.allCases, id: \.self) { mode in
-                            Text(mode.displayName)
-                                .tag(mode)
-                                .foregroundStyle(CyberpunkColors.textPrimary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "Activation") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Mode")
+                            .font(.system(size: 12))
+                            .foregroundStyle(AppColors.textSecondary)
+                        Picker("", selection: Binding(
+                            get: { settingsVM.activationMode },
+                            set: { settingsVM.activationMode = $0 }
+                        )) {
+                            ForEach(ActivationMode.allCases, id: \.self) { mode in
+                                Text(mode.displayName).tag(mode)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+
+                SettingsCard(title: "Floating Indicator") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        SettingsRow {
+                            Text("Position")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                            Picker("", selection: Binding(
+                                get: { settingsVM.indicatorPosition },
+                                set: { settingsVM.indicatorPosition = $0 }
+                            )) {
+                                ForEach(IndicatorPosition.allCases, id: \.self) { pos in
+                                    Text(pos.displayName).tag(pos)
+                                }
+                            }
+                            .frame(width: 140)
+                        }
+                        Divider().background(AppColors.border)
+                        SettingsRow {
+                            Text("Show transcription preview")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                            Toggle("", isOn: $settingsVM.showTranscriptionInIndicator)
+                                .tint(AppColors.accent)
                         }
                     }
-                    .pickerStyle(.segmented)
-                })
+                }
 
-                Section("🎤 Floating Indicator", content: {
-                    Picker("Position", selection: Binding(
-                        get: { settingsVM.indicatorPosition },
-                        set: { settingsVM.indicatorPosition = $0 }
-                    )) {
-                        ForEach(IndicatorPosition.allCases, id: \.self) { pos in
-                            Text(pos.displayName)
-                                .tag(pos)
-                                .foregroundStyle(CyberpunkColors.textPrimary)
-                        }
+                SettingsCard(title: "Feedback") {
+                    SettingsRow {
+                        Text("Sound feedback")
+                            .font(.system(size: 13))
+                            .foregroundStyle(AppColors.textPrimary)
+                        Spacer()
+                        Toggle("", isOn: $settingsVM.soundFeedbackEnabled)
+                            .tint(AppColors.accent)
                     }
-                    Toggle("Show transcription preview", isOn: $settingsVM.showTranscriptionInIndicator)
-                        .tint(CyberpunkColors.neonPink)
-                })
+                }
 
-                Section("Feedback", content: {
-                    Toggle("Sound feedback", isOn: $settingsVM.soundFeedbackEnabled)
-                        .tint(CyberpunkColors.neonPink)
-                })
-
-                Section("Launch", content: {
+                SettingsCard(title: "Launch") {
                     LaunchAtLoginToggle()
-                })
+                }
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
+            .padding(20)
         }
+        .background(AppColors.base)
     }
 }
 
@@ -96,11 +166,17 @@ struct LaunchAtLoginToggle: View {
     @State private var enabled = false
 
     var body: some View {
-        Toggle("Launch at login", isOn: $enabled)
-            .tint(CyberpunkColors.neonPink)
-            .onChange(of: enabled) { _, new in
-                // SMAppService integration would go here
-            }
+        SettingsRow {
+            Text("Launch at login")
+                .font(.system(size: 13))
+                .foregroundStyle(AppColors.textPrimary)
+            Spacer()
+            Toggle("", isOn: $enabled)
+                .tint(AppColors.accent)
+                .onChange(of: enabled) { _, _ in
+                    // SMAppService integration would go here
+                }
+        }
     }
 }
 
@@ -112,24 +188,24 @@ struct ModelsTab: View {
     @State private var downloadError: String?
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-            
-            VStack(alignment: .leading, spacing: 0) {
-                Form {
-                    Section("Transcription Engine") {
-                        Picker("Engine", selection: $settingsVM.selectedEngineID) {
-                            ForEach(EngineID.allCases, id: \.rawValue) { engine in
-                                Text(engine.displayName)
-                                    .tag(engine.rawValue)
-                                    .foregroundStyle(CyberpunkColors.textPrimary)
-                            }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "Transcription Engine") {
+                    Picker("", selection: $settingsVM.selectedEngineID) {
+                        ForEach(EngineID.allCases, id: \.rawValue) { engine in
+                            Text(engine.displayName).tag(engine.rawValue)
                         }
                     }
+                    .pickerStyle(.radioGroup)
+                }
 
-                    if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
-                        Section("🧠 Local Model") {
-                            ForEach(WhisperModelSize.allCases) { size in
+                if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
+                    SettingsCard(title: "Local Model") {
+                        VStack(spacing: 0) {
+                            ForEach(Array(WhisperModelSize.allCases.enumerated()), id: \.element) { idx, size in
+                                if idx > 0 {
+                                    Divider().background(AppColors.border)
+                                }
                                 ModelRow(
                                     size: size,
                                     isSelected: settingsVM.selectedModelSize == size,
@@ -139,23 +215,23 @@ struct ModelsTab: View {
                                     onSelect: { settingsVM.selectedModelSize = size },
                                     onDownload: { download(size) }
                                 )
-                            }
-                        }
-                        if let error = downloadError {
-                            Section {
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundStyle(CyberpunkColors.accentYellow)
+                                .padding(.vertical, 8)
                             }
                         }
                     }
+
+                    if let error = downloadError {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(AppColors.warning)
+                            .padding(.horizontal, 20)
+                    }
                 }
-                .formStyle(.grouped)
-                .scrollContentBackground(.hidden)
             }
-            .padding()
-            .onAppear { modelManager.refreshDownloaded() }
+            .padding(20)
         }
+        .background(AppColors.base)
+        .onAppear { modelManager.refreshDownloaded() }
     }
 
     private func download(_ size: WhisperModelSize) {
@@ -182,39 +258,36 @@ struct ModelRow: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(size.displayName)
-                    .font(.body)
-                    .foregroundStyle(CyberpunkColors.textPrimary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.textPrimary)
                 if isDownloading {
                     ProgressView(value: progress)
                         .frame(width: 120)
-                        .tint(CyberpunkColors.neonMagenta)
+                        .tint(AppColors.accent)
                 }
             }
             Spacer()
             if isDownloading {
                 Text("\(Int(progress * 100))%")
-                    .font(.caption)
-                    .foregroundStyle(CyberpunkColors.textSecondary)
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppColors.textSecondary)
             } else if isDownloaded {
                 if isSelected {
                     Text("Active")
-                        .font(.caption)
+                        .font(.system(size: 11, weight: .semibold))
                         .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Capsule().fill(CyberpunkColors.neonPink.opacity(0.2)))
-                        .foregroundStyle(CyberpunkColors.neonPink)
-                        .neonGlow(CyberpunkColors.neonPink, radius: 4)
+                        .padding(.vertical, 3)
+                        .background(Capsule().fill(AppColors.accentDim))
+                        .foregroundStyle(AppColors.accent)
                 } else {
                     Button("Use", action: onSelect)
                         .buttonStyle(.bordered)
-                        .tint(CyberpunkColors.neonMagenta)
                 }
             } else {
                 Button("Download", action: onDownload)
                     .buttonStyle(.bordered)
-                    .tint(CyberpunkColors.neonMagenta)
             }
         }
     }
@@ -226,46 +299,48 @@ struct AICleanupTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-
-            Form {
-                Section {
-                    Toggle("Enable AI cleanup", isOn: $settingsVM.aiCleanupEnabled)
-                        .tint(CyberpunkColors.neonPink)
-                    Text("Removes filler words, fixes grammar, and polishes transcriptions before inserting them.")
-                        .font(.caption)
-                        .foregroundStyle(CyberpunkColors.textMuted)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "AI Cleanup") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SettingsRow {
+                            Text("Enable AI cleanup")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                            Toggle("", isOn: $settingsVM.aiCleanupEnabled)
+                                .tint(AppColors.accent)
+                        }
+                        Text("Removes filler words, fixes grammar, and polishes transcriptions before inserting them.")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textMuted)
+                    }
                 }
 
                 if settingsVM.aiCleanupEnabled {
-                    Section("Provider") {
-                        Picker("Provider", selection: Binding(
-                            get: { settingsVM.aiCleanupProvider },
-                            set: { settingsVM.aiCleanupProvider = $0 }
-                        )) {
-                            ForEach(AICleanupProvider.allCases, id: \.self) { provider in
-                                Text(provider.displayName)
-                                    .tag(provider)
-                                    .foregroundStyle(CyberpunkColors.textPrimary)
+                    SettingsCard(title: "Provider") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Picker("", selection: Binding(
+                                get: { settingsVM.aiCleanupProvider },
+                                set: { settingsVM.aiCleanupProvider = $0 }
+                            )) {
+                                ForEach(AICleanupProvider.allCases, id: \.self) { provider in
+                                    Text(provider.displayName).tag(provider)
+                                }
                             }
-                        }
-                        .pickerStyle(.radioGroup)
-                        if settingsVM.aiCleanupProvider != .local {
-                            Text("Requires a valid API key in Cloud APIs settings.")
+                            .pickerStyle(.radioGroup)
+                            Text(settingsVM.aiCleanupProvider == .local
+                                ? "Runs on-device: removes filler words and cleans up punctuation."
+                                : "Requires a valid API key in Cloud APIs settings.")
                                 .font(.caption)
-                                .foregroundStyle(CyberpunkColors.textMuted)
-                        } else {
-                            Text("Runs on-device: removes filler words and cleans up punctuation.")
-                                .font(.caption)
-                                .foregroundStyle(CyberpunkColors.textMuted)
+                                .foregroundStyle(AppColors.textMuted)
                         }
                     }
                 }
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
+            .padding(20)
         }
+        .background(AppColors.base)
     }
 }
 
@@ -275,31 +350,33 @@ struct HotkeysTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-
-            Form {
-                Section("Push-to-Talk") {
-                    LabeledContent("Shortcut") {
-                        KeyboardShortcuts.Recorder("", name: .pushToTalk)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "Push-to-Talk") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledContent("Shortcut") {
+                            KeyboardShortcuts.Recorder("", name: .pushToTalk)
+                        }
+                        Text("Hold to record, release to transcribe and insert.")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textMuted)
                     }
-                    Text("Hold to record, release to transcribe and insert.")
-                        .font(.caption)
-                        .foregroundStyle(CyberpunkColors.textMuted)
                 }
 
-                Section("Toggle") {
-                    LabeledContent("Shortcut") {
-                        KeyboardShortcuts.Recorder("", name: .toggleRecording)
+                SettingsCard(title: "Toggle") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        LabeledContent("Shortcut") {
+                            KeyboardShortcuts.Recorder("", name: .toggleRecording)
+                        }
+                        Text("Press once to start recording, press again to stop and insert.")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.textMuted)
                     }
-                    Text("Press once to start recording, press again to stop and insert.")
-                        .font(.caption)
-                        .foregroundStyle(CyberpunkColors.textMuted)
                 }
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
+            .padding(20)
         }
+        .background(AppColors.base)
     }
 }
 
@@ -315,47 +392,31 @@ struct CloudAPITab: View {
     @State private var showDeepgram = false
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-
-            Form {
-                Section("OpenAI") {
-                    APIKeyField(
-                        label: "API Key",
-                        placeholder: "sk-...",
-                        value: $openAIKey,
-                        show: $showOpenAI,
-                        onSave: { settingsVM.openAIKey = openAIKey }
-                    )
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "OpenAI") {
+                    APIKeyField(label: "API Key", placeholder: "sk-...",
+                                value: $openAIKey, show: $showOpenAI,
+                                onSave: { settingsVM.openAIKey = openAIKey })
                 }
-
-                Section("Groq") {
-                    APIKeyField(
-                        label: "API Key",
-                        placeholder: "gsk_...",
-                        value: $groqKey,
-                        show: $showGroq,
-                        onSave: { settingsVM.groqKey = groqKey }
-                    )
+                SettingsCard(title: "Groq") {
+                    APIKeyField(label: "API Key", placeholder: "gsk_...",
+                                value: $groqKey, show: $showGroq,
+                                onSave: { settingsVM.groqKey = groqKey })
                 }
-
-                Section("Deepgram") {
-                    APIKeyField(
-                        label: "API Key",
-                        placeholder: "dg_...",
-                        value: $deepgramKey,
-                        show: $showDeepgram,
-                        onSave: { settingsVM.deepgramKey = deepgramKey }
-                    )
+                SettingsCard(title: "Deepgram") {
+                    APIKeyField(label: "API Key", placeholder: "dg_...",
+                                value: $deepgramKey, show: $showDeepgram,
+                                onSave: { settingsVM.deepgramKey = deepgramKey })
                 }
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
-            .onAppear {
-                openAIKey = settingsVM.openAIKey
-                groqKey = settingsVM.groqKey
-                deepgramKey = settingsVM.deepgramKey
-            }
+            .padding(20)
+        }
+        .background(AppColors.base)
+        .onAppear {
+            openAIKey = settingsVM.openAIKey
+            groqKey = settingsVM.groqKey
+            deepgramKey = settingsVM.deepgramKey
         }
     }
 }
@@ -368,7 +429,7 @@ struct APIKeyField: View {
     let onSave: () -> Void
 
     var body: some View {
-        HStack {
+        HStack(spacing: 8) {
             if show {
                 TextField(placeholder, text: $value)
                     .textFieldStyle(.roundedBorder)
@@ -378,10 +439,10 @@ struct APIKeyField: View {
             }
             Button(show ? "Hide" : "Show") { show.toggle() }
                 .buttonStyle(.plain)
-                .foregroundStyle(CyberpunkColors.textSecondary)
+                .font(.system(size: 12))
+                .foregroundStyle(AppColors.textMuted)
             Button("Save") { onSave() }
                 .buttonStyle(.bordered)
-                .tint(CyberpunkColors.neonMagenta)
         }
     }
 }
@@ -392,65 +453,104 @@ struct AboutTab: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-
-            Form {
-                Section {
-                    Image(systemName: "waveform.circle.fill")
-                        .font(.system(size: 48))
-                        .foregroundStyle(CyberpunkColors.neonPink)
-                        .neonGlow(CyberpunkColors.neonPink, radius: 8)
-                        .frame(maxWidth: .infinity)
-                    Text("Mumbl")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(CyberpunkColors.textPrimary)
-                        .frame(maxWidth: .infinity)
-                    Text("Free, open-source voice dictation for macOS.")
-                        .font(.subheadline)
-                        .foregroundStyle(CyberpunkColors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                SettingsCard(title: "") {
+                    VStack(spacing: 12) {
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(AppColors.accent)
+                        Text("Mumbl")
+                            .font(.title2.bold())
+                            .foregroundStyle(AppColors.textPrimary)
+                        Text("Free, open-source voice dictation for macOS.")
+                            .font(.subheadline)
+                            .foregroundStyle(AppColors.textSecondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
                 }
 
-                Section("Updates") {
-                    Toggle("Auto-update", isOn: $settingsVM.autoUpdateEnabled)
-                        .tint(CyberpunkColors.neonPink)
-                    if settingsVM.autoUpdateEnabled {
-                        Picker("Check frequency", selection: Binding(
-                            get: { settingsVM.updateCheckInterval },
-                            set: { settingsVM.updateCheckInterval = $0 }
-                        )) {
-                            ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
-                                Text(interval.displayName)
-                                    .tag(interval)
-                                    .foregroundStyle(CyberpunkColors.textPrimary)
-                            }
+                SettingsCard(title: "Updates") {
+                    VStack(spacing: 12) {
+                        SettingsRow {
+                            Text("Auto-update")
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppColors.textPrimary)
+                            Spacer()
+                            Toggle("", isOn: $settingsVM.autoUpdateEnabled)
+                                .tint(AppColors.accent)
                         }
-                        .pickerStyle(.radioGroup)
+                        if settingsVM.autoUpdateEnabled {
+                            Divider().background(AppColors.border)
+                            Picker("Check frequency", selection: Binding(
+                                get: { settingsVM.updateCheckInterval },
+                                set: { settingsVM.updateCheckInterval = $0 }
+                            )) {
+                                ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
+                                    Text(interval.displayName).tag(interval)
+                                }
+                            }
+                            .pickerStyle(.radioGroup)
+                        }
+                        Divider().background(AppColors.border)
+                        Button("Check for Updates Now") {
+                            NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    Button("Check for Updates Now") {
-                        NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(CyberpunkColors.neonMagenta)
                 }
 
-                Section("Links") {
-                    Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
-                        .foregroundStyle(CyberpunkColors.neonCyan)
-                    Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
-                        .foregroundStyle(CyberpunkColors.neonCyan)
+                SettingsCard(title: "Links") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
+                            .foregroundStyle(AppColors.accent)
+                        Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
+                            .foregroundStyle(AppColors.accent)
+                    }
                 }
 
-                Section {
-                    Text("MIT License · Made with Swift")
-                        .font(.caption)
-                        .foregroundStyle(CyberpunkColors.textMuted)
-                }
+                Text("MIT License · Made with Swift")
+                    .font(.caption)
+                    .foregroundStyle(AppColors.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .formStyle(.grouped)
-            .scrollContentBackground(.hidden)
+            .padding(20)
         }
+        .background(AppColors.base)
+    }
+}
+
+// MARK: - Shared Components
+
+struct SettingsCard<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            if !title.isEmpty {
+                Text(title.uppercased())
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(AppColors.textMuted)
+                    .tracking(0.8)
+            }
+            content
+                .padding(14)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(AppColors.surfaceHigh)
+                        .stroke(AppColors.border, lineWidth: 1)
+                )
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+struct SettingsRow<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        HStack { content }
     }
 }

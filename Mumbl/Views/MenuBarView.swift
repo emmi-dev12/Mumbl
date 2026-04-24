@@ -6,131 +6,103 @@ struct MenuBarView: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
     @Environment(\.openSettings) var openSettings
-    @State private var showHistory = false
 
     var body: some View {
-        ZStack {
-            // Cyberpunk dark background
-            CyberpunkColors.darkBg
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header with neon styling
-                HStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.title2)
-                            .foregroundStyle(CyberpunkColors.neonPink)
-                            .neonGlow(CyberpunkColors.neonPink, radius: 4)
-                        Text("Mumbl")
-                            .font(.headline)
-                            .foregroundStyle(CyberpunkColors.textPrimary)
-                            .neonGlow(CyberpunkColors.neonMagenta, radius: 2)
-                    }
-                    Spacer()
-                    Button(action: { NSApp.terminate(nil) }) {
-                        Image(systemName: "power")
-                            .foregroundStyle(CyberpunkColors.textSecondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Quit Mumbl")
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 14)
-                .padding(.bottom, 10)
-
-                Divider()
-                    .background(CyberpunkColors.neonPink.opacity(0.2))
-
-                // Status card with neon border
-                statusCard
-                    .padding(.horizontal, 12)
-                    .padding(.top, 10)
-
-                // Shortcuts info
-                shortcutsInfo
-                    .padding(.horizontal, 16)
-                    .padding(.top, 10)
-
-                Divider()
-                    .background(CyberpunkColors.neonMagenta.opacity(0.2))
-
-                // Recent transcriptions
-                recentSection
-
-                Divider()
-                    .background(CyberpunkColors.neonPink.opacity(0.2))
-
-                // Footer actions
-                HStack(spacing: 0) {
-                    MenuBarButton(title: "History", icon: "clock") {
-                        openHistory()
-                    }
-                    MenuBarButton(title: "Settings", icon: "gear") {
-                        NSApp.activate(ignoringOtherApps: true)
-                        openSettings()
-                    }
-                }
-                .padding(.bottom, 4)
-            }
-            .frame(width: 320)
+        VStack(spacing: 0) {
+            header
+            Divider().background(AppColors.border)
+            statusCard.padding(12)
+            shortcutsRow.padding(.horizontal, 12).padding(.bottom, 10)
+            Divider().background(AppColors.border)
+            recentSection
+            Divider().background(AppColors.border)
+            footerRow
         }
+        .frame(width: 320)
+        .background(AppColors.base)
     }
 
-    private var statusCard: some View {
-        HStack(spacing: 12) {
-            // Status indicator dot
-            ZStack {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 10, height: 10)
-                    .neonGlow(statusColor, radius: 3)
-                
-                if appVM.recordingState == .recording {
-                    Circle()
-                        .stroke(statusColor.opacity(0.3), lineWidth: 2)
-                        .frame(width: 18, height: 18)
-                }
+    // MARK: - Header
+
+    private var header: some View {
+        HStack {
+            HStack(spacing: 8) {
+                Image(systemName: "waveform.circle.fill")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(AppColors.accent)
+                Text("Mumbl")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
             }
-            
+            Spacer()
+            Button(action: { NSApp.terminate(nil) }) {
+                Image(systemName: "power")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(AppColors.textMuted)
+            }
+            .buttonStyle(.plain)
+            .help("Quit Mumbl")
+        }
+        .padding(.horizontal, 14)
+        .padding(.top, 13)
+        .padding(.bottom, 11)
+    }
+
+    // MARK: - Status Card
+
+    private var statusCard: some View {
+        HStack(spacing: 10) {
+            statusDot
             VStack(alignment: .leading, spacing: 2) {
                 Text(statusTitle)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(CyberpunkColors.textPrimary)
-                Text(statusSubtitle)
-                    .font(.system(size: 11))
-                    .foregroundStyle(CyberpunkColors.textSecondary)
-                    .lineLimit(1)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColors.textPrimary)
+                if !statusSubtitle.isEmpty {
+                    Text(statusSubtitle)
+                        .font(.system(size: 11))
+                        .foregroundStyle(AppColors.textSecondary)
+                        .lineLimit(1)
+                }
             }
             Spacer()
             engineBadge
         }
-        .padding(12)
+        .padding(11)
         .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(CyberpunkColors.darkBgAlt)
-                .stroke(borderColor, lineWidth: 1)
+            RoundedRectangle(cornerRadius: 9)
+                .fill(AppColors.surfaceHigh)
+                .stroke(statusBorderColor.opacity(0.35), lineWidth: 1)
         )
-        .neonGlow(borderColor, radius: 5)
     }
 
-    private var borderColor: Color {
-        switch appVM.recordingState {
-        case .recording: return CyberpunkColors.recordingRed
-        case .processing: return CyberpunkColors.processingBlue
-        case .done: return CyberpunkColors.successGreen
-        case .error: return CyberpunkColors.accentYellow
-        case .idle: return CyberpunkColors.neonPink.opacity(0.3)
+    private var statusDot: some View {
+        ZStack {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
+            if appVM.recordingState == .recording {
+                Circle()
+                    .stroke(statusColor.opacity(0.3), lineWidth: 1.5)
+                    .frame(width: 16, height: 16)
+            }
         }
+        .frame(width: 20, height: 20)
     }
 
     private var statusColor: Color {
         switch appVM.recordingState {
-        case .recording: return CyberpunkColors.recordingRed
-        case .processing: return CyberpunkColors.processingBlue
-        case .done: return CyberpunkColors.successGreen
-        case .error: return CyberpunkColors.accentYellow
-        case .idle: return CyberpunkColors.neonPink
+        case .recording: return AppColors.recording
+        case .processing: return AppColors.processing
+        case .done: return AppColors.success
+        case .error: return AppColors.warning
+        case .idle: return AppColors.accent
+        }
+    }
+
+    private var statusBorderColor: Color {
+        switch appVM.recordingState {
+        case .idle: return AppColors.border
+        default: return statusColor
         }
     }
 
@@ -154,57 +126,58 @@ struct MenuBarView: View {
     }
 
     private var engineBadge: some View {
-        Text(EngineID(rawValue: settingsVM.selectedEngineID)?.displayName ?? "Local")
-            .font(.system(size: 10, weight: .semibold))
-            .padding(.horizontal, 8)
+        let name = EngineID(rawValue: settingsVM.selectedEngineID)?.displayName ?? "Local"
+        return Text(name)
+            .font(.system(size: 10, weight: .medium))
+            .padding(.horizontal, 7)
             .padding(.vertical, 3)
-            .background(Capsule().fill(CyberpunkColors.neonMagenta.opacity(0.2)))
-            .foregroundStyle(CyberpunkColors.neonMagenta)
-            .neonGlow(CyberpunkColors.neonMagenta, radius: 2)
+            .background(Capsule().fill(AppColors.surface))
+            .foregroundStyle(AppColors.textSecondary)
     }
 
-    private var shortcutsInfo: some View {
-        HStack(spacing: 12) {
+    // MARK: - Shortcuts
+
+    private var shortcutsRow: some View {
+        HStack(spacing: 8) {
             if settingsVM.activationMode == .pushToTalk || settingsVM.activationMode == .both {
-                let pushToTalkLabel = shortcutString(for: .pushToTalk)
-                ShortcutChip(label: pushToTalkLabel, description: "Push-to-talk")
+                ShortcutChip(label: shortcutLabel(for: .pushToTalk), description: "Hold")
             }
             if settingsVM.activationMode == .toggle || settingsVM.activationMode == .both {
-                let toggleLabel = shortcutString(for: .toggleRecording)
-                ShortcutChip(label: toggleLabel, description: "Toggle")
+                ShortcutChip(label: shortcutLabel(for: .toggleRecording), description: "Toggle")
             }
+            Spacer()
         }
     }
 
-    private func shortcutString(for name: KeyboardShortcuts.Name) -> String {
-        guard let shortcut = KeyboardShortcuts.getShortcut(for: name) else {
-            return "Not set"
-        }
-
-        return shortcut.description
+    private func shortcutLabel(for name: KeyboardShortcuts.Name) -> String {
+        KeyboardShortcuts.getShortcut(for: name)?.description ?? "Not set"
     }
+
+    // MARK: - Recent
 
     private var recentSection: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("Recent")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(CyberpunkColors.neonCyan)
-                .padding(.horizontal, 16)
-                .padding(.top, 10)
+        VStack(alignment: .leading, spacing: 0) {
+            Text("RECENT")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(AppColors.textMuted)
+                .tracking(0.8)
+                .padding(.horizontal, 14)
+                .padding(.top, 11)
+                .padding(.bottom, 7)
 
             if appVM.lastTranscription.isEmpty {
                 Text("No transcriptions yet")
                     .font(.system(size: 12))
-                    .foregroundStyle(CyberpunkColors.textMuted)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    .foregroundStyle(AppColors.textMuted)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 12)
             } else {
                 Text(appVM.lastTranscription)
                     .font(.system(size: 12))
-                    .foregroundStyle(CyberpunkColors.textPrimary)
+                    .foregroundStyle(AppColors.textPrimary)
                     .lineLimit(3)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 10)
+                    .padding(.horizontal, 14)
+                    .padding(.bottom, 12)
                     .onTapGesture {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(appVM.lastTranscription, forType: .string)
@@ -212,6 +185,24 @@ struct MenuBarView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Footer
+
+    private var footerRow: some View {
+        HStack(spacing: 0) {
+            FooterButton(title: "History", icon: "clock") {
+                openHistory()
+            }
+            Divider()
+                .frame(height: 24)
+                .background(AppColors.border)
+            FooterButton(title: "Settings", icon: "gear") {
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            }
+        }
+        .frame(height: 40)
     }
 
     private func openHistory() {
@@ -224,35 +215,35 @@ struct MenuBarView: View {
         window.title = "Transcription History"
         window.center()
         window.contentViewController = NSHostingController(
-            rootView: HistoryView()
-                .environmentObject(historyVM)
+            rootView: HistoryView().environmentObject(historyVM)
         )
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 }
 
+// MARK: - Supporting Views
+
 struct ShortcutChip: View {
     let label: String
     let description: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                .foregroundStyle(CyberpunkColors.neonCyan)
-                .neonGlow(CyberpunkColors.neonCyan, radius: 2)
-                .padding(.horizontal, 6)
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundStyle(AppColors.textPrimary)
+                .padding(.horizontal, 5)
                 .padding(.vertical, 2)
-                .background(RoundedRectangle(cornerRadius: 4).fill(CyberpunkColors.neonCyan.opacity(0.1)))
+                .background(RoundedRectangle(cornerRadius: 4).fill(AppColors.surfaceHigh))
             Text(description)
                 .font(.system(size: 10))
-                .foregroundStyle(CyberpunkColors.textSecondary)
+                .foregroundStyle(AppColors.textMuted)
         }
     }
 }
 
-struct MenuBarButton: View {
+struct FooterButton: View {
     let title: String
     let icon: String
     let action: () -> Void
@@ -263,21 +254,12 @@ struct MenuBarButton: View {
             Label(title, systemImage: icon)
                 .font(.system(size: 12, weight: .medium))
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .foregroundStyle(CyberpunkColors.textPrimary)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isHovered ? CyberpunkColors.neonPink.opacity(0.15) : CyberpunkColors.darkBgAlt)
-                )
+                .foregroundStyle(isHovered ? AppColors.accent : AppColors.textSecondary)
         }
         .buttonStyle(.plain)
+        .background(isHovered ? AppColors.surfaceHover : AppColors.base)
         .contentShape(Rectangle())
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isHovered = hovering
-            }
-        }
-        .padding(.horizontal, 4)
+        .onHover { h in withAnimation(.easeInOut(duration: 0.15)) { isHovered = h } }
     }
 }
 
@@ -291,7 +273,7 @@ struct HoverEffectModifier: ViewModifier {
     @State private var hovered = false
     func body(content: Content) -> some View {
         content
-            .background(hovered ? Color.primary.opacity(0.06) : .clear)
+            .background(hovered ? AppColors.surfaceHover : .clear)
             .onHover { hovered = $0 }
     }
 }

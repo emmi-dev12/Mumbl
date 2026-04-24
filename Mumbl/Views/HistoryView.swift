@@ -13,26 +13,22 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        ZStack {
-            CyberpunkColors.darkBg.ignoresSafeArea()
-
-            VStack(spacing: 0) {
-                searchBar
-
-                if filtered.isEmpty {
-                    emptyState
-                } else {
-                    list
-                }
+        VStack(spacing: 0) {
+            searchBar
+            if filtered.isEmpty {
+                emptyState
+            } else {
+                list
             }
         }
+        .background(AppColors.base)
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 if !records.isEmpty {
                     Button("Clear All", role: .destructive) {
                         historyVM.deleteAll()
                     }
-                    .foregroundStyle(CyberpunkColors.recordingRed)
+                    .foregroundStyle(AppColors.recording)
                 }
             }
         }
@@ -40,25 +36,26 @@ struct HistoryView: View {
     }
 
     private var searchBar: some View {
-        HStack {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .foregroundStyle(CyberpunkColors.neonCyan)
-                .neonGlow(CyberpunkColors.neonCyan, radius: 2)
+                .font(.system(size: 13))
+                .foregroundStyle(AppColors.textMuted)
             TextField("Search transcriptions…", text: $searchText)
                 .textFieldStyle(.plain)
-                .foregroundStyle(CyberpunkColors.textPrimary)
+                .font(.system(size: 13))
+                .foregroundStyle(AppColors.textPrimary)
             if !searchText.isEmpty {
                 Button(action: { searchText = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(CyberpunkColors.textSecondary)
+                        .foregroundStyle(AppColors.textMuted)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(CyberpunkColors.darkBgAlt)
-        .overlay(Rectangle().frame(height: 1).foregroundStyle(CyberpunkColors.neonPink.opacity(0.2)), alignment: .bottom)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(AppColors.surface)
+        .overlay(Divider().background(AppColors.border), alignment: .bottom)
     }
 
     private var list: some View {
@@ -67,8 +64,9 @@ struct HistoryView: View {
                 HistoryRow(record: record, isCopied: copiedID == record.id) {
                     copy(record)
                 }
-                .listRowSeparator(.visible)
-                .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                .listRowBackground(AppColors.base)
+                .listRowSeparatorTint(AppColors.border)
+                .listRowInsets(EdgeInsets(top: 6, leading: 14, bottom: 6, trailing: 14))
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         historyVM.delete(record)
@@ -79,22 +77,22 @@ struct HistoryView: View {
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             Spacer()
             Image(systemName: "waveform")
-                .font(.system(size: 40))
-                .foregroundStyle(CyberpunkColors.textMuted)
-                .neonGlow(CyberpunkColors.neonPink.opacity(0.3), radius: 6)
+                .font(.system(size: 36))
+                .foregroundStyle(AppColors.textMuted)
             Text(searchText.isEmpty ? "No transcriptions yet" : "No results")
-                .font(.headline)
-                .foregroundStyle(CyberpunkColors.textSecondary)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundStyle(AppColors.textSecondary)
             if searchText.isEmpty {
                 Text("Use your hotkey to start dictating")
-                    .font(.subheadline)
-                    .foregroundStyle(CyberpunkColors.textMuted)
+                    .font(.system(size: 12))
+                    .foregroundStyle(AppColors.textMuted)
             }
             Spacer()
         }
@@ -116,26 +114,27 @@ struct HistoryRow: View {
     let onCopy: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 5) {
             Text(record.text)
                 .font(.system(size: 13))
-                .foregroundStyle(CyberpunkColors.textPrimary)
+                .foregroundStyle(AppColors.textPrimary)
                 .lineLimit(3)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Text(record.date, style: .relative)
                     .font(.system(size: 11))
-                    .foregroundStyle(CyberpunkColors.textMuted)
-                Text("·").foregroundStyle(CyberpunkColors.textMuted)
+                    .foregroundStyle(AppColors.textMuted)
+                Text("·").foregroundStyle(AppColors.textMuted)
                 Text(record.engineDisplayName)
                     .font(.system(size: 11))
-                    .foregroundStyle(CyberpunkColors.textMuted)
+                    .foregroundStyle(AppColors.textMuted)
                 Spacer()
                 Button(action: onCopy) {
-                    Label(isCopied ? "Copied" : "Copy", systemImage: isCopied ? "checkmark" : "doc.on.doc")
+                    Label(isCopied ? "Copied" : "Copy",
+                          systemImage: isCopied ? "checkmark" : "doc.on.doc")
                         .font(.system(size: 11))
-                        .foregroundStyle(isCopied ? CyberpunkColors.successGreen : CyberpunkColors.textSecondary)
+                        .foregroundStyle(isCopied ? AppColors.success : AppColors.textMuted)
                 }
                 .buttonStyle(.plain)
             }
