@@ -15,9 +15,9 @@ final class FloatingIndicatorController {
 
     func setup(appVM: AppViewModel, settingsVM: SettingsViewModel) {
         self.settingsVM = settingsVM
-        
+
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 240, height: 60),
+            contentRect: NSRect(x: 0, y: 0, width: 220, height: 52),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -38,7 +38,6 @@ final class FloatingIndicatorController {
     }
 
     private func observe(appVM: AppViewModel, settingsVM: SettingsViewModel) {
-        // Watch recording state changes
         appVM.$recordingState.sink { [weak self] state in
             Task { @MainActor in
                 switch state {
@@ -50,8 +49,7 @@ final class FloatingIndicatorController {
                 }
             }
         }.store(in: &cancellables)
-        
-        // Watch position changes (indicatorPosition is computed over @AppStorage, so observe objectWillChange)
+
         settingsVM.objectWillChange.sink { [weak self] _ in
             Task { @MainActor in
                 self?.updatePosition(position: settingsVM.indicatorPosition)
@@ -61,47 +59,39 @@ final class FloatingIndicatorController {
 
     private func updatePosition(position: IndicatorPosition) {
         guard let screen = NSScreen.main, let panel else { return }
-        
+
         let screenFrame = screen.frame
         let panelSize = panel.frame.size
         let padding: CGFloat = 16
-        
+
         let point: NSPoint
-        
+
         switch position {
         case .topLeft:
             point = NSPoint(x: screenFrame.minX + padding, y: screenFrame.maxY - panelSize.height - padding)
-            
         case .topCenter:
             let x = screenFrame.minX + (screenFrame.width - panelSize.width) / 2
             point = NSPoint(x: x, y: screenFrame.maxY - panelSize.height - padding)
-            
         case .topRight:
             let x = screenFrame.maxX - panelSize.width - padding
             point = NSPoint(x: x, y: screenFrame.maxY - panelSize.height - padding)
-            
         case .bottomLeft:
             point = NSPoint(x: screenFrame.minX + padding, y: screenFrame.minY + padding)
-            
         case .bottomCenter:
             let x = screenFrame.minX + (screenFrame.width - panelSize.width) / 2
             point = NSPoint(x: x, y: screenFrame.minY + padding)
-            
         case .bottomRight:
             let x = screenFrame.maxX - panelSize.width - padding
             point = NSPoint(x: x, y: screenFrame.minY + padding)
-            
         case .center:
             let x = screenFrame.minX + (screenFrame.width - panelSize.width) / 2
             let y = screenFrame.minY + (screenFrame.height - panelSize.height) / 2
             point = NSPoint(x: x, y: y)
-            
         case .nearCursor:
             let cursorLocation = NSEvent.mouseLocation
-            point = NSPoint(x: cursorLocation.x - panelSize.width / 2,
-                           y: cursorLocation.y + 30)
+            point = NSPoint(x: cursorLocation.x - panelSize.width / 2, y: cursorLocation.y + 30)
         }
-        
+
         panel.setFrameOrigin(point)
     }
 }
@@ -112,21 +102,19 @@ struct FloatingIndicatorView: View {
     @EnvironmentObject var appVM: AppViewModel
     @EnvironmentObject var settingsVM: SettingsViewModel
     @State private var pulse = false
-    @State private var glow = false
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             stateIcon
             stateLabel
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
         .background(
             Capsule()
-                .fill(CyberpunkColors.darkBg)
-                .stroke(borderGradient, lineWidth: 1.5)
+                .fill(AppColors.surface)
+                .stroke(indicatorBorderColor, lineWidth: 1)
         )
-        .neonGlow(borderGlowColor, radius: 10)
         .animation(.spring(response: 0.3), value: appVM.recordingState)
     }
 
@@ -136,40 +124,37 @@ struct FloatingIndicatorView: View {
         case .recording:
             ZStack {
                 Circle()
-                    .fill(CyberpunkColors.recordingRed)
-                    .frame(width: 12, height: 12)
-                
+                    .fill(AppColors.recording)
+                    .frame(width: 10, height: 10)
                 Circle()
-                    .stroke(CyberpunkColors.recordingRed.opacity(0.5), lineWidth: 2)
-                    .frame(width: 20, height: 20)
+                    .stroke(AppColors.recording.opacity(0.4), lineWidth: 1.5)
+                    .frame(width: 18, height: 18)
                     .scaleEffect(pulse ? 1.4 : 1.0)
             }
             .onAppear {
-                withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                withAnimation(.easeInOut(duration: 0.7).repeatForever(autoreverses: true)) {
                     pulse = true
                 }
             }
             .onDisappear { pulse = false }
-            
+
         case .processing:
-            ZStack {
-                ProgressView()
-                    .progressViewStyle(.circular)
-                    .scaleEffect(0.8)
-                    .tint(CyberpunkColors.processingBlue)
-            }
-            .frame(width: 20, height: 20)
-            
+            ProgressView()
+                .progressViewStyle(.circular)
+                .scaleEffect(0.7)
+                .tint(AppColors.processing)
+                .frame(width: 18, height: 18)
+
         case .done:
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(CyberpunkColors.successGreen)
-                .font(.system(size: 18, weight: .bold))
-            
+                .foregroundStyle(AppColors.success)
+                .font(.system(size: 16, weight: .semibold))
+
         case .error:
             Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(CyberpunkColors.accentYellow)
-                .font(.system(size: 18, weight: .bold))
-            
+                .foregroundStyle(AppColors.warning)
+                .font(.system(size: 16, weight: .semibold))
+
         case .idle:
             EmptyView()
         }
@@ -179,119 +164,68 @@ struct FloatingIndicatorView: View {
     private var stateLabel: some View {
         switch appVM.recordingState {
         case .recording:
-            NeonWaveformView(level: appVM.audioLevel)
-                .frame(width: 70, height: 20)
-                
+            WaveformView(level: appVM.audioLevel)
+                .frame(width: 60, height: 18)
+
         case .processing:
             Text("Transcribing…")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(CyberpunkColors.processingBlue)
-                
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColors.processing)
+
         case .done(let text):
             if settingsVM.showTranscriptionInIndicator {
                 Text(text.prefix(35) + (text.count > 35 ? "…" : ""))
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(CyberpunkColors.textSecondary)
+                    .foregroundStyle(AppColors.textSecondary)
                     .lineLimit(1)
             } else {
                 Text("Done")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(CyberpunkColors.successGreen)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppColors.success)
             }
-            
+
         case .error(let msg):
             Text(msg)
                 .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(CyberpunkColors.accentYellow)
+                .foregroundStyle(AppColors.warning)
                 .lineLimit(1)
-                
+
         case .idle:
             EmptyView()
         }
     }
 
-    private var borderGradient: AnyShapeStyle {
+    private var indicatorBorderColor: Color {
         switch appVM.recordingState {
-        case .recording:
-            return AnyShapeStyle(
-                LinearGradient(
-                    gradient: Gradient(colors: [CyberpunkColors.recordingRed, CyberpunkColors.neonPink]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-        case .processing:
-            return AnyShapeStyle(
-                LinearGradient(
-                    gradient: Gradient(colors: [CyberpunkColors.processingBlue, CyberpunkColors.neonCyan]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-        case .done:
-            return AnyShapeStyle(
-                LinearGradient(
-                    gradient: Gradient(colors: [CyberpunkColors.successGreen, CyberpunkColors.accentGreen]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-        case .error:
-            return AnyShapeStyle(
-                LinearGradient(
-                    gradient: Gradient(colors: [CyberpunkColors.accentYellow, CyberpunkColors.neonPink]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
-        case .idle:
-            return AnyShapeStyle(CyberpunkColors.textMuted)
-        }
-    }
-    
-    private var borderGlowColor: Color {
-        switch appVM.recordingState {
-        case .recording: return CyberpunkColors.recordingRed
-        case .processing: return CyberpunkColors.processingBlue
-        case .done: return CyberpunkColors.successGreen
-        case .error: return CyberpunkColors.accentYellow
-        case .idle: return CyberpunkColors.neonPink
+        case .recording: return AppColors.recording.opacity(0.5)
+        case .processing: return AppColors.processing.opacity(0.4)
+        case .done: return AppColors.success.opacity(0.4)
+        case .error: return AppColors.warning.opacity(0.4)
+        case .idle: return AppColors.border
         }
     }
 }
 
-// MARK: - Animated Neon Waveform
+// MARK: - Waveform
 
-struct NeonWaveformView: View {
+struct WaveformView: View {
     let level: Float
     private let barCount = 5
 
     var body: some View {
         HStack(spacing: 3) {
             ForEach(0..<barCount, id: \.self) { i in
-                VStack(spacing: 0) {
-                    RoundedRectangle(cornerRadius: 1)
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    CyberpunkColors.neonPink,
-                                    CyberpunkColors.neonMagenta
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 3, height: barHeight(index: i))
-                        .neonGlow(CyberpunkColors.neonPink, radius: 3)
-                }
-                .frame(height: 20, alignment: .bottom)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(AppColors.accent)
+                    .frame(width: 3, height: barHeight(index: i))
+                    .frame(height: 18, alignment: .bottom)
             }
         }
     }
 
     private func barHeight(index: Int) -> CGFloat {
         let base: CGFloat = 3
-        let maxH: CGFloat = 18
+        let maxH: CGFloat = 16
         let normalized = CGFloat(min(max(level * 12, 0), 1))
         let wave = abs(sin(Double(index) * .pi / Double(barCount - 1)))
         return base + (maxH - base) * normalized * CGFloat(wave)
