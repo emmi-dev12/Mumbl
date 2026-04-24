@@ -2,237 +2,298 @@ import SwiftUI
 import KeyboardShortcuts
 import AppKit
 
-// MARK: - Settings Section
+// MARK: - Settings Sheet Sections
 
-enum SettingsSection: String, CaseIterable, Hashable {
-    case general, models, hotkeys, aiCleanup, cloudAPIs, about
+enum SettingsSheetSection: String, CaseIterable, Hashable {
+    case transcription, hotkeys, preferences, about
 
-    var label: String {
+    var title: String {
         switch self {
-        case .general: return "General"
-        case .models: return "Models"
-        case .hotkeys: return "Hotkeys"
-        case .aiCleanup: return "AI Cleanup"
-        case .cloudAPIs: return "Cloud APIs"
-        case .about: return "About"
+        case .transcription: return "Transcription"
+        case .hotkeys:       return "Hotkeys"
+        case .preferences:   return "Preferences"
+        case .about:         return "About"
         }
     }
 
     var icon: String {
         switch self {
-        case .general: return "gear"
-        case .models: return "cpu"
-        case .hotkeys: return "keyboard"
-        case .aiCleanup: return "sparkles"
-        case .cloudAPIs: return "cloud"
-        case .about: return "info.circle"
+        case .transcription: return "waveform"
+        case .hotkeys:       return "keyboard"
+        case .preferences:   return "slider.horizontal.3"
+        case .about:         return "info.circle"
         }
     }
 }
 
-// MARK: - Settings Root
+// MARK: - Settings Sheet (modal, shown as .sheet)
 
-struct SettingsView: View {
+struct SettingsSheetView: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject var historyVM: HistoryViewModel
-    @State private var selected: SettingsSection = .general
+    @EnvironmentObject var modelManager: ModelManagerService
+    @Environment(\.dismiss) var dismiss
+    @State private var selected: SettingsSheetSection = .transcription
 
     var body: some View {
-        NavigationSplitView(columnVisibility: .constant(.all)) {
-            sidebar
-        } detail: {
-            detail
-                .environmentObject(settingsVM)
-                .environmentObject(historyVM)
+        HStack(spacing: 0) {
+            settingsSidebar
+            Divider().background(AppColors.border)
+            settingsContent
         }
-        .frame(width: 620, height: 460)
-        .preferredColorScheme(.dark)
-        .navigationSplitViewStyle(.prominentDetail)
-    }
-
-    private var sidebar: some View {
-        List(selection: $selected) {
-            ForEach(SettingsSection.allCases, id: \.self) { section in
-                SidebarRow(section: section, isSelected: selected == section)
-                    .tag(section)
-            }
-        }
-        .listStyle(.sidebar)
-        .scrollContentBackground(.hidden)
-        .background(AppColors.surface)
-        .navigationSplitViewColumnWidth(min: 150, ideal: 160, max: 180)
-    }
-
-    @ViewBuilder
-    private var detail: some View {
-        switch selected {
-        case .general: GeneralTab()
-        case .models: ModelsTab()
-        case .hotkeys: HotkeysTab()
-        case .aiCleanup: AICleanupTab()
-        case .cloudAPIs: CloudAPITab()
-        case .about: AboutTab()
-        }
-    }
-}
-
-struct SidebarRow: View {
-    let section: SettingsSection
-    let isSelected: Bool
-
-    var body: some View {
-        Label(section.label, systemImage: section.icon)
-            .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(isSelected ? AppColors.accent : AppColors.textSecondary)
-            .padding(.vertical, 1)
-    }
-}
-
-// MARK: - General Tab
-
-struct GeneralTab: View {
-    @EnvironmentObject var settingsVM: SettingsViewModel
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "Activation") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Mode")
-                            .font(.system(size: 12))
-                            .foregroundStyle(AppColors.textSecondary)
-                        Picker("", selection: Binding(
-                            get: { settingsVM.activationMode },
-                            set: { settingsVM.activationMode = $0 }
-                        )) {
-                            ForEach(ActivationMode.allCases, id: \.self) { mode in
-                                Text(mode.displayName).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-
-                SettingsCard(title: "Floating Indicator") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        SettingsRow {
-                            Text("Position")
-                                .font(.system(size: 13))
-                                .foregroundStyle(AppColors.textPrimary)
-                            Spacer()
-                            Picker("", selection: Binding(
-                                get: { settingsVM.indicatorPosition },
-                                set: { settingsVM.indicatorPosition = $0 }
-                            )) {
-                                ForEach(IndicatorPosition.allCases, id: \.self) { pos in
-                                    Text(pos.displayName).tag(pos)
-                                }
-                            }
-                            .frame(width: 140)
-                        }
-                        Divider().background(AppColors.border)
-                        SettingsRow {
-                            Text("Show transcription preview")
-                                .font(.system(size: 13))
-                                .foregroundStyle(AppColors.textPrimary)
-                            Spacer()
-                            Toggle("", isOn: $settingsVM.showTranscriptionInIndicator)
-                                .tint(AppColors.accent)
-                        }
-                    }
-                }
-
-                SettingsCard(title: "Feedback") {
-                    SettingsRow {
-                        Text("Sound feedback")
-                            .font(.system(size: 13))
-                            .foregroundStyle(AppColors.textPrimary)
-                        Spacer()
-                        Toggle("", isOn: $settingsVM.soundFeedbackEnabled)
-                            .tint(AppColors.accent)
-                    }
-                }
-
-                SettingsCard(title: "Launch") {
-                    LaunchAtLoginToggle()
-                }
-            }
-            .padding(20)
-        }
+        .frame(width: 700, height: 480)
         .background(AppColors.base)
     }
-}
 
-struct LaunchAtLoginToggle: View {
-    @State private var enabled = false
-
-    var body: some View {
-        SettingsRow {
-            Text("Launch at login")
-                .font(.system(size: 13))
+    private var settingsSidebar: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Settings")
+                .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(AppColors.textPrimary)
-            Spacer()
-            Toggle("", isOn: $enabled)
-                .tint(AppColors.accent)
-                .onChange(of: enabled) { _, _ in
-                    // SMAppService integration would go here
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+
+            VStack(spacing: 2) {
+                ForEach(SettingsSheetSection.allCases, id: \.self) { section in
+                    SettingsNavItem(
+                        icon: section.icon,
+                        title: section.title,
+                        isSelected: selected == section
+                    ) {
+                        selected = section
+                    }
                 }
+            }
+            .padding(.horizontal, 8)
+
+            Spacer()
+
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                Text("Version \(version)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(AppColors.textMuted)
+                    .padding(16)
+            }
         }
+        .frame(width: 200)
+        .background(AppColors.base)
+    }
+
+    private var settingsContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(AppColors.textMuted)
+                        .padding(6)
+                        .background(Circle().fill(AppColors.surfaceHigh))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 14)
+            .padding(.bottom, 4)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    switch selected {
+                    case .transcription: TranscriptionContent()
+                    case .hotkeys:       HotkeysContent()
+                    case .preferences:   PreferencesContent()
+                    case .about:         AboutContent()
+                    }
+                }
+                .padding(20)
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.surface)
     }
 }
 
-// MARK: - Models Tab
+struct SettingsNavItem: View {
+    let icon: String
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
 
-struct ModelsTab: View {
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                ZStack {
+                    if isSelected {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(AppColors.accent)
+                            .frame(width: 28, height: 28)
+                    }
+                    Image(systemName: icon)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(isSelected ? Color.black : AppColors.textMuted)
+                }
+                .frame(width: 28, height: 28)
+
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? AppColors.textPrimary : AppColors.textSecondary)
+
+                Spacer()
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isHovered && !isSelected ? AppColors.surfaceHover : Color.clear)
+            )
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+    }
+}
+
+// MARK: - Settings Row Helpers
+
+struct SettingsItemRow<Control: View>: View {
+    let icon: String
+    let title: String
+    let description: String
+    @ViewBuilder let control: Control
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: icon)
+                .font(.system(size: 16))
+                .foregroundStyle(AppColors.textSecondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.textPrimary)
+                if !description.isEmpty {
+                    Text(description)
+                        .font(.system(size: 11))
+                        .foregroundStyle(AppColors.textMuted)
+                }
+            }
+
+            Spacer()
+            control
+        }
+        .padding(14)
+    }
+}
+
+struct SettingsGroup<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+        }
+        .background(RoundedRectangle(cornerRadius: 12).fill(AppColors.surfaceHigh))
+    }
+}
+
+struct SettingsDivider: View {
+    var body: some View {
+        Divider()
+            .background(AppColors.border)
+            .padding(.horizontal, 14)
+    }
+}
+
+// MARK: - Transcription Settings
+
+struct TranscriptionContent: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
     @EnvironmentObject var modelManager: ModelManagerService
     @State private var downloadError: String?
+    @State private var openAIKey = ""
+    @State private var groqKey = ""
+    @State private var deepgramKey = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "Transcription Engine") {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "cpu",
+                    title: "Engine",
+                    description: "Choose your transcription backend"
+                ) {
                     Picker("", selection: $settingsVM.selectedEngineID) {
-                        ForEach(EngineID.allCases, id: \.rawValue) { engine in
-                            Text(engine.displayName).tag(engine.rawValue)
+                        ForEach(EngineID.allCases, id: \.rawValue) { e in
+                            Text(e.displayName).tag(e.rawValue)
                         }
                     }
-                    .pickerStyle(.radioGroup)
+                    .frame(width: 180)
                 }
+            }
 
-                if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
-                    SettingsCard(title: "Local Model") {
-                        VStack(spacing: 0) {
-                            ForEach(Array(WhisperModelSize.allCases.enumerated()), id: \.element) { idx, size in
-                                if idx > 0 {
-                                    Divider().background(AppColors.border)
-                                }
-                                ModelRow(
-                                    size: size,
-                                    isSelected: settingsVM.selectedModelSize == size,
-                                    isDownloaded: modelManager.isDownloaded(size),
-                                    isDownloading: modelManager.downloadProgress[size.rawValue] != nil,
-                                    progress: modelManager.downloadProgress[size.rawValue] ?? 0,
-                                    onSelect: { settingsVM.selectedModelSize = size },
-                                    onDownload: { download(size) }
-                                )
-                                .padding(.vertical, 8)
-                            }
+            if settingsVM.selectedEngineID == EngineID.whisperKit.rawValue {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("LOCAL MODEL")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(0.7)
+                        .foregroundStyle(AppColors.textMuted)
+
+                    SettingsGroup {
+                        ForEach(Array(WhisperModelSize.allCases.enumerated()), id: \.element) { idx, size in
+                            if idx > 0 { SettingsDivider() }
+                            ModelRow(
+                                size: size,
+                                isSelected: settingsVM.selectedModelSize == size,
+                                isDownloaded: modelManager.isDownloaded(size),
+                                isDownloading: modelManager.downloadProgress[size.rawValue] != nil,
+                                progress: modelManager.downloadProgress[size.rawValue] ?? 0,
+                                onSelect: { settingsVM.selectedModelSize = size },
+                                onDownload: { download(size) }
+                            )
+                            .padding(14)
                         }
                     }
 
                     if let error = downloadError {
-                        Text(error)
-                            .font(.caption)
-                            .foregroundStyle(AppColors.warning)
-                            .padding(.horizontal, 20)
+                        Text(error).font(.caption).foregroundStyle(AppColors.warning)
                     }
                 }
             }
-            .padding(20)
+
+            if settingsVM.selectedEngineID != EngineID.whisperKit.rawValue {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("API KEY")
+                        .font(.system(size: 10, weight: .semibold))
+                        .tracking(0.7)
+                        .foregroundStyle(AppColors.textMuted)
+
+                    SettingsGroup {
+                        if settingsVM.selectedEngineID == EngineID.openAI.rawValue {
+                            APIKeyRow(label: "OpenAI", placeholder: "sk-...", key: $openAIKey) {
+                                settingsVM.openAIKey = openAIKey
+                            }
+                        } else if settingsVM.selectedEngineID == EngineID.groq.rawValue {
+                            APIKeyRow(label: "Groq", placeholder: "gsk_...", key: $groqKey) {
+                                settingsVM.groqKey = groqKey
+                            }
+                        } else if settingsVM.selectedEngineID == EngineID.deepgram.rawValue {
+                            APIKeyRow(label: "Deepgram", placeholder: "dg_...", key: $deepgramKey) {
+                                settingsVM.deepgramKey = deepgramKey
+                            }
+                        }
+                    }
+                }
+            }
         }
-        .background(AppColors.base)
-        .onAppear { modelManager.refreshDownloaded() }
+        .onAppear {
+            openAIKey = settingsVM.openAIKey
+            groqKey = settingsVM.groqKey
+            deepgramKey = settingsVM.deepgramKey
+        }
     }
 
     private func download(_ size: WhisperModelSize) {
@@ -248,330 +309,230 @@ struct ModelsTab: View {
     }
 }
 
-struct ModelRow: View {
-    let size: WhisperModelSize
-    let isSelected: Bool
-    let isDownloaded: Bool
-    let isDownloading: Bool
-    let progress: Double
-    let onSelect: () -> Void
-    let onDownload: () -> Void
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(size.displayName)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(AppColors.textPrimary)
-                if isDownloading {
-                    ProgressView(value: progress)
-                        .frame(width: 120)
-                        .tint(AppColors.accent)
-                }
-            }
-            Spacer()
-            if isDownloading {
-                Text("\(Int(progress * 100))%")
-                    .font(.system(size: 11))
-                    .foregroundStyle(AppColors.textSecondary)
-            } else if isDownloaded {
-                if isSelected {
-                    Text("Active")
-                        .font(.system(size: 11, weight: .semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Capsule().fill(AppColors.accentDim))
-                        .foregroundStyle(AppColors.accent)
-                } else {
-                    Button("Use", action: onSelect)
-                        .buttonStyle(.bordered)
-                }
-            } else {
-                Button("Download", action: onDownload)
-                    .buttonStyle(.bordered)
-            }
-        }
-    }
-}
-
-// MARK: - AI Cleanup Tab
-
-struct AICleanupTab: View {
-    @EnvironmentObject var settingsVM: SettingsViewModel
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "AI Cleanup") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        SettingsRow {
-                            Text("Enable AI cleanup")
-                                .font(.system(size: 13))
-                                .foregroundStyle(AppColors.textPrimary)
-                            Spacer()
-                            Toggle("", isOn: $settingsVM.aiCleanupEnabled)
-                                .tint(AppColors.accent)
-                        }
-                        Text("Removes filler words, fixes grammar, and polishes transcriptions before inserting them.")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.textMuted)
-                    }
-                }
-
-                if settingsVM.aiCleanupEnabled {
-                    SettingsCard(title: "Provider") {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Picker("", selection: Binding(
-                                get: { settingsVM.aiCleanupProvider },
-                                set: { settingsVM.aiCleanupProvider = $0 }
-                            )) {
-                                ForEach(AICleanupProvider.allCases, id: \.self) { provider in
-                                    Text(provider.displayName).tag(provider)
-                                }
-                            }
-                            .pickerStyle(.radioGroup)
-                            Text(settingsVM.aiCleanupProvider == .local
-                                ? "Runs on-device: removes filler words and cleans up punctuation."
-                                : "Requires a valid API key in Cloud APIs settings.")
-                                .font(.caption)
-                                .foregroundStyle(AppColors.textMuted)
-                        }
-                    }
-                }
-            }
-            .padding(20)
-        }
-        .background(AppColors.base)
-    }
-}
-
-// MARK: - Hotkeys Tab
-
-struct HotkeysTab: View {
-    @EnvironmentObject var settingsVM: SettingsViewModel
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "Push-to-Talk") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        LabeledContent("Shortcut") {
-                            KeyboardShortcuts.Recorder("", name: .pushToTalk)
-                        }
-                        Text("Hold to record, release to transcribe and insert.")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.textMuted)
-                    }
-                }
-
-                SettingsCard(title: "Toggle") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        LabeledContent("Shortcut") {
-                            KeyboardShortcuts.Recorder("", name: .toggleRecording)
-                        }
-                        Text("Press once to start recording, press again to stop and insert.")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.textMuted)
-                    }
-                }
-            }
-            .padding(20)
-        }
-        .background(AppColors.base)
-    }
-}
-
-// MARK: - Cloud APIs Tab
-
-struct CloudAPITab: View {
-    @EnvironmentObject var settingsVM: SettingsViewModel
-    @State private var openAIKey = ""
-    @State private var groqKey = ""
-    @State private var deepgramKey = ""
-    @State private var showOpenAI = false
-    @State private var showGroq = false
-    @State private var showDeepgram = false
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "OpenAI") {
-                    APIKeyField(label: "API Key", placeholder: "sk-...",
-                                value: $openAIKey, show: $showOpenAI,
-                                onSave: { settingsVM.openAIKey = openAIKey })
-                }
-                SettingsCard(title: "Groq") {
-                    APIKeyField(label: "API Key", placeholder: "gsk_...",
-                                value: $groqKey, show: $showGroq,
-                                onSave: { settingsVM.groqKey = groqKey })
-                }
-                SettingsCard(title: "Deepgram") {
-                    APIKeyField(label: "API Key", placeholder: "dg_...",
-                                value: $deepgramKey, show: $showDeepgram,
-                                onSave: { settingsVM.deepgramKey = deepgramKey })
-                }
-            }
-            .padding(20)
-        }
-        .background(AppColors.base)
-        .onAppear {
-            openAIKey = settingsVM.openAIKey
-            groqKey = settingsVM.groqKey
-            deepgramKey = settingsVM.deepgramKey
-        }
-    }
-}
-
-struct APIKeyField: View {
+struct APIKeyRow: View {
     let label: String
     let placeholder: String
-    @Binding var value: String
-    @Binding var show: Bool
+    @Binding var key: String
     let onSave: () -> Void
+    @State private var show = false
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(AppColors.textPrimary)
+                .frame(width: 70, alignment: .leading)
             if show {
-                TextField(placeholder, text: $value)
+                TextField(placeholder, text: $key)
                     .textFieldStyle(.roundedBorder)
             } else {
-                SecureField(placeholder, text: $value)
+                SecureField(placeholder, text: $key)
                     .textFieldStyle(.roundedBorder)
             }
             Button(show ? "Hide" : "Show") { show.toggle() }
                 .buttonStyle(.plain)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(AppColors.textMuted)
             Button("Save") { onSave() }
                 .buttonStyle(.bordered)
         }
+        .padding(14)
     }
 }
 
-// MARK: - About Tab
+// MARK: - Hotkeys Settings
 
-struct AboutTab: View {
+struct HotkeysContent: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "hand.point.right.fill",
+                    title: "Push-to-Talk",
+                    description: "Hold to record, release to insert"
+                ) {
+                    KeyboardShortcuts.Recorder("", name: .pushToTalk)
+                }
+                SettingsDivider()
+                SettingsItemRow(
+                    icon: "arrow.2.squarepath",
+                    title: "Toggle Recording",
+                    description: "Press to start, press again to insert"
+                ) {
+                    KeyboardShortcuts.Recorder("", name: .toggleRecording)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Preferences Settings
+
+struct PreferencesContent: View {
     @EnvironmentObject var settingsVM: SettingsViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                SettingsCard(title: "") {
-                    VStack(spacing: 12) {
-                        Image(systemName: "waveform.circle.fill")
-                            .font(.system(size: 48))
-                            .foregroundStyle(AppColors.accent)
-                        Text("Mumbl")
-                            .font(.title2.bold())
-                            .foregroundStyle(AppColors.textPrimary)
-                        Text("Free, open-source voice dictation for macOS.")
-                            .font(.subheadline)
-                            .foregroundStyle(AppColors.textSecondary)
-                            .multilineTextAlignment(.center)
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "pip",
+                    title: "Indicator Position",
+                    description: "Where the floating status pill appears"
+                ) {
+                    Picker("", selection: Binding(
+                        get: { settingsVM.indicatorPosition },
+                        set: { settingsVM.indicatorPosition = $0 }
+                    )) {
+                        ForEach(IndicatorPosition.allCases, id: \.self) { pos in
+                            Text(pos.displayName).tag(pos)
+                        }
                     }
-                    .frame(maxWidth: .infinity)
+                    .frame(width: 140)
                 }
+                SettingsDivider()
+                SettingsItemRow(
+                    icon: "eye",
+                    title: "Show preview in indicator",
+                    description: "Display transcription text in the pill"
+                ) {
+                    Toggle("", isOn: $settingsVM.showTranscriptionInIndicator)
+                        .tint(AppColors.accent)
+                }
+                SettingsDivider()
+                SettingsItemRow(
+                    icon: "speaker.wave.2",
+                    title: "Sound feedback",
+                    description: "Play sounds on start/stop"
+                ) {
+                    Toggle("", isOn: $settingsVM.soundFeedbackEnabled)
+                        .tint(AppColors.accent)
+                }
+            }
 
-                SettingsCard(title: "Getting Started") {
-                    Button("Show Onboarding") {
-                        let window = NSWindow(
-                            contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
-                            styleMask: [.titled, .closable],
-                            backing: .buffered,
-                            defer: false
-                        )
-                        window.title = "Welcome to Mumbl"
-                        window.center()
-                        window.contentViewController = NSHostingController(
-                            rootView: OnboardingView(onComplete: { window.close() })
-                                .environmentObject(settingsVM)
-                        )
-                        window.makeKeyAndOrderFront(nil)
-                        NSApp.activate(ignoringOtherApps: true)
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "sparkles",
+                    title: "AI Cleanup",
+                    description: "Automatically fix grammar and remove filler words"
+                ) {
+                    Toggle("", isOn: $settingsVM.aiCleanupEnabled)
+                        .tint(AppColors.accent)
+                }
+                if settingsVM.aiCleanupEnabled {
+                    SettingsDivider()
+                    SettingsItemRow(
+                        icon: "cloud",
+                        title: "Cleanup Provider",
+                        description: ""
+                    ) {
+                        Picker("", selection: Binding(
+                            get: { settingsVM.aiCleanupProvider },
+                            set: { settingsVM.aiCleanupProvider = $0 }
+                        )) {
+                            ForEach(AICleanupProvider.allCases, id: \.self) { p in
+                                Text(p.displayName).tag(p)
+                            }
+                        }
+                        .frame(width: 140)
+                    }
+                }
+            }
+
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "arrow.down.circle",
+                    title: "Auto-update",
+                    description: "Check for updates automatically"
+                ) {
+                    Toggle("", isOn: $settingsVM.autoUpdateEnabled)
+                        .tint(AppColors.accent)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - About Settings
+
+struct AboutContent: View {
+    @EnvironmentObject var settingsVM: SettingsViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsGroup {
+                VStack(spacing: 12) {
+                    Image(systemName: "waveform.circle.fill")
+                        .font(.system(size: 44))
+                        .foregroundStyle(AppColors.accent)
+                    Text("Mumbl")
+                        .font(.title2.bold())
+                        .foregroundStyle(AppColors.textPrimary)
+                    Text("Free, open-source voice dictation for macOS.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppColors.textSecondary)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(20)
+            }
+
+            SettingsGroup {
+                SettingsItemRow(
+                    icon: "arrow.clockwise",
+                    title: "Check for Updates",
+                    description: ""
+                ) {
+                    Button("Check Now") {
+                        NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
                     }
                     .buttonStyle(.bordered)
                 }
-
-                SettingsCard(title: "Updates") {
-                    VStack(spacing: 12) {
-                        SettingsRow {
-                            Text("Auto-update")
-                                .font(.system(size: 13))
-                                .foregroundStyle(AppColors.textPrimary)
-                            Spacer()
-                            Toggle("", isOn: $settingsVM.autoUpdateEnabled)
-                                .tint(AppColors.accent)
-                        }
-                        if settingsVM.autoUpdateEnabled {
-                            Divider().background(AppColors.border)
-                            Picker("Check frequency", selection: Binding(
-                                get: { settingsVM.updateCheckInterval },
-                                set: { settingsVM.updateCheckInterval = $0 }
-                            )) {
-                                ForEach(UpdateCheckInterval.allCases, id: \.self) { interval in
-                                    Text(interval.displayName).tag(interval)
-                                }
-                            }
-                            .pickerStyle(.radioGroup)
-                        }
-                        Divider().background(AppColors.border)
-                        Button("Check for Updates Now") {
-                            NSApp.sendAction(Selector(("checkForUpdates:")), to: nil, from: nil)
-                        }
+                SettingsDivider()
+                SettingsItemRow(
+                    icon: "star",
+                    title: "Show Onboarding",
+                    description: "Replay the welcome walkthrough"
+                ) {
+                    Button("Open") { showOnboarding() }
                         .buttonStyle(.bordered)
-                    }
                 }
-
-                SettingsCard(title: "Links") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Link("GitHub", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
-                            .foregroundStyle(AppColors.accent)
-                        Link("Report Issue", destination: URL(string: "https://github.com/emmi-dev12/mumbl/issues")!)
-                            .foregroundStyle(AppColors.accent)
-                    }
+                SettingsDivider()
+                SettingsItemRow(icon: "link", title: "GitHub", description: "") {
+                    Link("Open", destination: URL(string: "https://github.com/emmi-dev12/mumbl")!)
+                        .buttonStyle(.bordered)
                 }
-
-                Text("MIT License · Made with Swift")
-                    .font(.caption)
-                    .foregroundStyle(AppColors.textMuted)
-                    .frame(maxWidth: .infinity, alignment: .center)
             }
-            .padding(20)
         }
-        .background(AppColors.base)
+    }
+
+    private func showOnboarding() {
+        let w = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
+            styleMask: [.titled, .closable],
+            backing: .buffered,
+            defer: false
+        )
+        w.title = "Welcome to Mumbl"
+        w.center()
+        w.contentViewController = NSHostingController(
+            rootView: OnboardingView(onComplete: { w.close() })
+                .environmentObject(settingsVM)
+        )
+        w.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }
 
-// MARK: - Shared Components
-
-struct SettingsCard<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !title.isEmpty {
-                Text(title.uppercased())
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(AppColors.textMuted)
-                    .tracking(0.8)
-            }
-            content
-                .padding(14)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(AppColors.surfaceHigh)
-                        .stroke(AppColors.border, lineWidth: 1)
-                )
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-struct SettingsRow<Content: View>: View {
-    @ViewBuilder let content: Content
+// MARK: - Legacy wrapper (keeps Settings scene working if still used)
+struct SettingsView: View {
+    @EnvironmentObject var settingsVM: SettingsViewModel
+    @EnvironmentObject var historyVM: HistoryViewModel
+    @EnvironmentObject var modelManager: ModelManagerService
 
     var body: some View {
-        HStack { content }
+        SettingsSheetView()
+            .environmentObject(settingsVM)
+            .environmentObject(historyVM)
+            .environmentObject(modelManager)
     }
 }
