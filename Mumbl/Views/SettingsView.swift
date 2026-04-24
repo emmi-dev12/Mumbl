@@ -1,5 +1,6 @@
 import SwiftUI
 import KeyboardShortcuts
+import AppKit
 
 // MARK: - Settings Section
 
@@ -469,6 +470,26 @@ struct AboutTab: View {
                             .multilineTextAlignment(.center)
                     }
                     .frame(maxWidth: .infinity)
+                }
+
+                SettingsCard(title: "Getting Started") {
+                    Button("Show Onboarding") {
+                        let window = NSWindow(
+                            contentRect: NSRect(x: 0, y: 0, width: 520, height: 560),
+                            styleMask: [.titled, .closable],
+                            backing: .buffered,
+                            defer: false
+                        )
+                        window.title = "Welcome to Mumbl"
+                        window.center()
+                        window.contentViewController = NSHostingController(
+                            rootView: OnboardingView(onComplete: { window.close() })
+                                .environmentObject(settingsVM)
+                        )
+                        window.makeKeyAndOrderFront(nil)
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                    .buttonStyle(.bordered)
                 }
 
                 SettingsCard(title: "Updates") {
