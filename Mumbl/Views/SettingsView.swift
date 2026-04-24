@@ -162,7 +162,14 @@ struct SettingsItemRow<Control: View>: View {
     let icon: String
     let title: String
     let description: String
-    @ViewBuilder let control: Control
+    let control: Control
+
+    init(icon: String, title: String, description: String, @ViewBuilder control: () -> Control) {
+        self.icon = icon
+        self.title = title
+        self.description = description
+        self.control = control()
+    }
 
     var body: some View {
         HStack(spacing: 14) {
@@ -190,7 +197,11 @@ struct SettingsItemRow<Control: View>: View {
 }
 
 struct SettingsGroup<Content: View>: View {
-    @ViewBuilder let content: Content
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
 
     var body: some View {
         VStack(spacing: 0) {
