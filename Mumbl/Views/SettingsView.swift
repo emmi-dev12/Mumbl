@@ -525,10 +525,13 @@ struct AboutContent: View {
         )
         w.title = "Welcome to Mumbl"
         w.center()
-        w.contentViewController = NSHostingController(
-            rootView: OnboardingView(onComplete: { w.close() })
+        let hostingController = NSHostingController(
+            rootView: OnboardingView(onComplete: { [weak w] in
+                w?.close()
+            })
                 .environmentObject(settingsVM)
         )
+        w.contentViewController = hostingController
         w.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
